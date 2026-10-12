@@ -16,7 +16,7 @@ Abre <http://127.0.0.1:3000>. Sin credenciales, la portada, los 16 recursos inic
 
 ## Conectar Supabase
 
-1. Crea un proyecto Supabase. Ejecuta **en orden** los cuatro archivos de `supabase/migrations/` en SQL Editor. Ejecuta después `supabase/seed.sql`. Alternativamente, usa Supabase CLI: `supabase link --project-ref TU_REFERENCIA` y `supabase db push`; ejecuta el seed por separado. Las migraciones se ejecutan una sola vez; el seed puede repetirse.
+1. Crea un proyecto Supabase. Usa la CLI instalada en el proyecto: `npx supabase login`, `npx supabase link --project-ref TU_REFERENCIA` y `npx supabase db push --include-seed`. Así quedan registradas las migraciones que aplicará posteriormente CI/CD. Las migraciones se ejecutan una sola vez; el seed puede repetirse. Si ya ejecutaste el SQL manualmente, revisa `npx supabase migration list` y concilia el historial antes de activar el despliegue; no vuelvas a ejecutar las migraciones iniciales sobre tablas existentes.
 2. Copia la URL del proyecto y su publishable key en `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Una legacy anon key también funciona en esa variable.
 3. Configura `SUPABASE_SERVICE_ROLE_KEY` con la service role key del proyecto, **solo del lado servidor**. Nunca pongas esta clave en una variable `NEXT_PUBLIC_*`, repositorio, captura o mensaje. Se usa para resolver enlaces por su hash y entregar archivos tras comprobar acceso.
 4. En Auth → URL Configuration, configura Site URL y los redirects permitidos: `http://127.0.0.1:3000/auth/callback`, `http://localhost:3000/auth/callback` y, al desplegar, `https://TU-DOMINIO/auth/callback`. Deja habilitado el proveedor Email y los registros. El acceso usa enlaces por correo, abiertos en el mismo navegador que los solicitó, mediante PKCE.
@@ -78,12 +78,75 @@ La suite crea y elimina tres cuentas de prueba y sus registros. Comprueba aislam
 
 ## Desplegar en Vercel
 
-1. Sube este proyecto a un repositorio e impórtalo en Vercel con el preset Next.js. Directorio raíz: esta carpeta. Instalación: `npm ci`; build: `npm run build`.
-2. Añade las cuatro variables de aplicación de `.env.example` a Production y Preview. Usa un Supabase separado para pruebas si vas a permitir cambios desde previews. No añadas variables de integración a Vercel.
+1. En tu cuenta de Vercel, elige **Add New → Project** e importa `DavidValenciaX/escritura_creativa` desde GitHub. Selecciona el equipo `davidvalenciaxs-projects`, preset Next.js y raíz del repositorio. Instalación: `npm ci`; build: `npm run build`. La importación inicial puede generar su primer despliegue; configura las variables antes de confirmarla.
+2. Añade las cuatro variables de aplicación de `.env.example` a **Production**. La clave secreta de Supabase permanece en `SUPABASE_SERVICE_ROLE_KEY`, nunca en una variable pública. Usa un Supabase separado si posteriormente habilitas Preview. No añadas variables de integración a Vercel.
 3. Establece `NEXT_PUBLIC_SITE_URL` con el dominio definitivo. Añádelo a las URLs de Auth de Supabase y vuelve a desplegar.
 4. Comprueba con dos cuentas reales: carta privada, publicación por destinatario, imagen de borrador inaccesible, enlace anónimo y revocación; después un aporte y su moderación.
 
-El repositorio incluye configuración y migraciones; no crea ni despliega cuentas de proveedor automáticamente. Sin credenciales no se pueden verificar la entrega de correo, permisos reales, Realtime o la publicación en Vercel.
+La aplicación se aloja en tu cuenta de Vercel. Supabase aloja PostgreSQL, Auth y Storage; no publica esta aplicación Next.js. El workflow descrito abajo coordina ambos servicios. `vercel.json` desactiva los despliegues automáticos de la integración Git para que cada push no publique una segunda entrega antes de terminar las pruebas y las migraciones. No se generan previews automáticas con esta configuración. No cambies `git.deploymentEnabled` a `true` mientras uses el workflow de producción.
+
+## GitHub Actions: CI/CD
+
+Los archivos `.github/workflows/ci.yml` y `.github/workflows/deploy.yml` ya incluyen:
+
+- En pull requests: TypeScript, pruebas unitarias y SQL en PGlite, build y Playwright en escritorio y móvil. Se guardan los diagnósticos del navegador si falla.
+- En un job independiente: Supabase efímero con Docker en el runner, migraciones y seed del repositorio, y pruebas reales de Auth, PostgreSQL y Storage. No usa tu proyecto alojado ni necesita sus secretos.
+- En cada push a `main`: las mismas comprobaciones; después, si está activado el despliegue, build con las variables de Vercel, migraciones pendientes y catálogo en Supabase, y publicación de ese build en Vercel. Un fallo detiene los pasos siguientes. También se puede ejecutar desde Actions → Producción → Run workflow, seleccionando `main`.
+
+### Configuración inicial
+
+Primero importa el proyecto en Vercel y configura sus variables de aplicación. Después, en GitHub → **Settings → Secrets and variables → Actions**, añade estos **Repository secrets**:
+
+| Secreto | Procedencia |
+| --- | --- |
+| `SUPABASE_ACCESS_TOKEN` | Token personal de tu cuenta Supabase, en Account → Access Tokens. No es la publishable key ni la service role key. |
+| `SUPABASE_DB_PASSWORD` | Contraseña de PostgreSQL del proyecto de producción. No es tu contraseña de acceso a Supabase. |
+| `VERCEL_TOKEN` | Token de tu cuenta Vercel con acceso al equipo del proyecto, desde Account Settings → Tokens. |
+
+En la pestaña **Variables**, añade estas **Repository variables**:
+
+| Variable | Valor |
+| --- | --- |
+| `SUPABASE_PROJECT_REF` | Referencia del proyecto de producción, visible en su URL o en `supabase/.temp/project-ref`. |
+| `VERCEL_ORG_ID` | Team ID de `davidvalenciaxs-projects`, desde los ajustes del equipo. |
+| `VERCEL_PROJECT_ID` | Project ID del proyecto importado, desde Project Settings → General. |
+| `ENABLE_PRODUCTION_DEPLOY` | `true` cuando hayas terminado toda la configuración. Ausente o con otro valor, solo se ejecutan las comprobaciones. |
+
+En GitHub → **Settings → Environments**, crea `production` y limita las ramas de despliegue a `main`. Puedes añadir revisores si quieres aprobación humana para cada entrega; sin revisores, el flujo será automático después de las pruebas. El indicador `ENABLE_PRODUCTION_DEPLOY` debe ser una variable del repositorio, porque se evalúa antes de entrar al environment.
+
+No necesitas copiar las claves de aplicación a GitHub: `vercel pull` descarga las variables de Production para construir la entrega. Se ignora `.vercel/` para evitar subirlas. Conserva los secretos en las interfaces de cada proveedor, nunca en los YAML ni en commits.
+
+Sube estos archivos al repositorio. El primer push ejecutará las comprobaciones y omitirá el job de despliegue hasta que actives la variable. Con el proyecto y los secretos configurados, activa `ENABLE_PRODUCTION_DEPLOY=true` y ejecuta **Producción** manualmente para la primera entrega coordinada. A partir de entonces, cada push a `main` lo repetirá automáticamente. Configura protección de `main` con las comprobaciones de ambos jobs de CI antes de permitir merges.
+
+Las migraciones aplicadas no se revierten automáticamente si después falla Vercel. Para cambios de esquema, mantén compatibilidad con la versión de la aplicación que sigue publicada y usa una migración posterior para retirar campos antiguos.
+
+Documentación: [Supabase y GitHub Actions](https://supabase.com/docs/guides/deployment/managing-environments), [Vercel con GitHub Actions](https://vercel.com/kb/guide/how-can-i-use-github-actions-with-vercel) y [control de despliegues Git de Vercel](https://vercel.com/docs/project-configuration/git-configuration).
+
+## Supabase CLI y MCP en Windows
+
+La CLI está instalada como dependencia de desarrollo y fijada por `package-lock.json`. No requiere Scoop ni instalación global. Ejecuta estos comandos desde la carpeta del proyecto:
+
+```powershell
+npx supabase --version
+npm run supabase -- --version
+npx supabase migration list
+```
+
+`--version` se escribe junto. `supabase --version` sin `npx` solo funciona si hay una instalación global en PATH. No uses `npm install -g supabase`; utiliza la dependencia local. Docker se necesita para `npx supabase start`, que arranca un backend local, pero no para usar la CLI con el proyecto alojado.
+
+`npm run dev` inicia **Next.js en tu computador**; no es un comando del dashboard Supabase. Si ya está corriendo, presiona Ctrl+C en esa terminal y vuelve a ejecutar `npm run dev`. Abre `http://127.0.0.1:3000`, solicita el enlace de acceso por correo y ábrelo en el mismo navegador. Reinicia el servidor cuando cambies `.env.local`.
+
+El MCP oficial remoto se configura en Codex, separado de la CLI y de CI/CD. Para otro equipo:
+
+```powershell
+codex mcp add supabase --url "https://mcp.supabase.com/mcp?project_ref=TU_REFERENCIA&read_only=true"
+codex mcp login supabase
+codex mcp list
+```
+
+Completa la autorización de tu cuenta en el navegador. La configuración se guarda en el perfil local de Codex, no en GitHub. Con `project_ref` queda limitada a ese proyecto y `read_only=true` permite inspección sin modificar su base de datos. Las migraciones de producción se aplican mediante la CLI o el workflow. Si acabas de agregar el servidor, reinicia Codex para cargar sus herramientas en una nueva sesión. No se instala ningún servidor MCP dentro de la aplicación Next.js.
+
+Documentación: [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started), [MCP de Supabase](https://supabase.com/docs/guides/ai-tools/mcp) y [MCP en Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
 ## Estructura
 

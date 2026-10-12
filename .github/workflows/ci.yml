@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    name: Tipos, pruebas, build y navegador
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Guardar diagnóstico de navegador
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: playwright-diagnostics
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  permissions:
+    name: Migraciones y permisos en Supabase aislado
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Arrancar Supabase efímero con migraciones y catálogo
+        # El estado puede contener claves locales: no publicarlo en los logs.
+        run: npx supabase start > "$RUNNER_TEMP/supabase-start.log" 2>&1
+      - name: Configurar credenciales exclusivamente de pruebas
+        run: |
+          npx supabase status -o json > "$RUNNER_TEMP/supabase-status.json"
+          node scripts/ci-supabase-env.mjs "$RUNNER_TEMP/supabase-status.json"
+      - run: npm run test:integration
+      - name: Detener Supabase
+        if: always()
+        run: npx supabase stop --no-backup
