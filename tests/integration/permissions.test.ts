@@ -123,13 +123,11 @@ describe.skipIf(!ready)(
         make_public: false,
       });
       expect(pub.error).toBeNull();
-      const grant = await owner
-        .from("grants")
-        .insert({
-          owner_id: ownerId,
-          notebook_id: notebookId,
-          recipient_email: readerEmail,
-        });
+      const grant = await owner.from("grants").insert({
+        owner_id: ownerId,
+        notebook_id: notebookId,
+        recipient_email: readerEmail,
+      });
       expect(grant.error).toBeNull();
       const { data, error } = await reader.rpc("read_notebook", {
         book: notebookId,
@@ -161,13 +159,11 @@ describe.skipIf(!ready)(
         payload: { ...draft, notebook_id: notebookId },
       });
       expect(stale.error?.code).toBe("40001");
-      const forged = await stranger
-        .from("grants")
-        .insert({
-          owner_id: users[2],
-          document_id: documentId,
-          recipient_email: readerEmail,
-        });
+      const forged = await stranger.from("grants").insert({
+        owner_id: users[2],
+        document_id: documentId,
+        recipient_email: readerEmail,
+      });
       expect(forged.error).not.toBeNull();
     });
     it("revokes recipients and enforces private bucket isolation", async () => {
@@ -185,6 +181,36 @@ describe.skipIf(!ready)(
         .from("personal")
         .upload(`${users[1]}/forbidden.txt`, "private");
       expect(upload.error).not.toBeNull();
+    });
+    it("limits private avatar metadata and assignments to the owning account", async () => {
+      const id = randomUUID();
+      const inserted = await admin
+        .from("avatars")
+        .insert({
+          id,
+          owner_id: users[0],
+          storage_path: `${users[0]}/${id}.webp`,
+        });
+      expect(inserted.error).toBeNull();
+      expect(
+        (await anonymous.from("avatars").select("id").eq("id", id)).data,
+      ).toEqual([]);
+      expect(
+        (await stranger.from("avatars").select("id").eq("id", id)).data,
+      ).toEqual([]);
+      const forged = await stranger
+        .from("profiles")
+        .update({ avatar_upload_id: id })
+        .eq("id", users[2]);
+      expect(forged.error).not.toBeNull();
+      const updated = await owner
+        .from("profiles")
+        .update({ avatar_upload_id: id })
+        .eq("id", users[0]);
+      expect(updated.error).toBeNull();
+      const bucket = await admin.storage.getBucket("avatars");
+      expect(bucket.error).toBeNull();
+      expect(bucket.data?.public).toBe(false);
     });
     it("public visibility can be removed without exposing drafts", async () => {
       const published = await owner.rpc("publish_document", {

@@ -30,7 +30,9 @@ export default async function Page({
   return (
     <Shell active="/wall">
       <section className="profile-banner">
-        {profile.avatar_resource_id ? (
+        {profile.avatar_upload_id ? (
+          <img src={`/api/avatar/${profile.avatar_upload_id}`} alt="" />
+        ) : profile.avatar_resource_id ? (
           <img src={`/api/resource/${profile.avatar_resource_id}`} alt="" />
         ) : (
           <span className="avatar">

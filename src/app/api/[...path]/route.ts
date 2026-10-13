@@ -19,7 +19,7 @@ import {
   type Draft,
   type Document,
 } from "@/lib/model";
-import { prepareUpload } from "@/lib/uploads";
+import { prepareUpload, prepareAvatar } from "@/lib/uploads";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ path: string[] }> };
@@ -150,6 +150,43 @@ export async function GET(request: Request, context: Context) {
     const { path } = await context.params;
     const url = new URL(request.url);
     const token = url.searchParams.get("token");
+    if (path[0] === "avatar" && path[1]) {
+      const id = z.uuid().parse(path[1]);
+      const admin = service();
+      const { data: avatar, error } = await admin
+        .from("avatars")
+        .select("owner_id,storage_path")
+        .eq("id", id)
+        .maybeSingle();
+      check(error);
+      if (!avatar) throw new HttpError(404, "Avatar no disponible.");
+      const db = await supabase();
+      const { data: profile, error: profileError } = await db
+        .from("profiles")
+        .select("id")
+        .eq("avatar_upload_id", id)
+        .maybeSingle();
+      check(profileError);
+      if (!profile) {
+        const {
+          data: { user },
+        } = await db.auth.getUser();
+        if (user?.id !== avatar.owner_id)
+          throw new HttpError(404, "Avatar no disponible.");
+      }
+      const { data: file, error: downloadError } = await admin.storage
+        .from("avatars")
+        .download(avatar.storage_path);
+      check(downloadError);
+      if (!file) throw new HttpError(404, "Avatar no disponible.");
+      return new NextResponse(await file.arrayBuffer(), {
+        headers: {
+          "Content-Type": "image/webp",
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    }
     if (path[0] === "studio") {
       const { db, user } = await authenticated();
       const queries = await Promise.all([
@@ -296,7 +333,11 @@ export async function POST(request: Request, context: Context) {
     const { path } = await context.params;
     const { db, user } = await authenticated();
     if (path[0] === "upload") {
-      const bytes = await boundedBody(request, 11 * 1024 * 1024);
+      const isAvatar = path[1] === "avatar";
+      const bytes = await boundedBody(
+        request,
+        isAvatar ? 4 * 1024 * 1024 + 65536 : 11 * 1024 * 1024,
+      );
       const form = await new Request(request.url, {
         method: "POST",
         headers: { "content-type": request.headers.get("content-type") ?? "" },
@@ -305,17 +346,20 @@ export async function POST(request: Request, context: Context) {
       const file = form.get("file");
       if (!(file instanceof File))
         throw new HttpError(400, "Elige un archivo.");
-      const isResource = form.get("mode") === "resource";
+      const isResource = !isAvatar && form.get("mode") === "resource";
       const kind = isResource
         ? z.enum(["paper", "font", "image"]).parse(form.get("kind"))
         : "image";
-      const verified = await prepareUpload(
-        new Uint8Array(await file.arrayBuffer()),
-        kind === "font" ? "font" : "image",
-        file.type,
-      );
+      const input = new Uint8Array(await file.arrayBuffer());
+      const verified = isAvatar
+        ? await prepareAvatar(input, file.type)
+        : await prepareUpload(
+            input,
+            kind === "font" ? "font" : "image",
+            file.type,
+          );
       const admin = service();
-      const table = isResource ? "resources" : "media";
+      const table = isAvatar ? "avatars" : isResource ? "resources" : "media";
       const { count, error: countError } = await admin
         .from(table)
         .select("id", { count: "exact", head: true })
@@ -352,13 +396,17 @@ export async function POST(request: Request, context: Context) {
           });
         if (form.get("permission") !== "yes")
           throw new HttpError(400, "Confirma el permiso de reutilización.");
-      } else {
+      } else if (!isAvatar) {
         documentId = z.uuid().parse(form.get("documentId"));
         await ownedDocument(documentId);
       }
       const id = randomUUID();
       const storagePath = `${user.id}/${id}.${verified.extension}`;
-      const bucket = isResource ? "community" : "personal";
+      const bucket = isAvatar
+        ? "avatars"
+        : isResource
+          ? "community"
+          : "personal";
       const { error: uploadError } = await admin.storage
         .from(bucket)
         .upload(storagePath, verified.bytes, {
@@ -366,10 +414,10 @@ export async function POST(request: Request, context: Context) {
           upsert: false,
         });
       check(uploadError);
-      const { error } = await admin
-        .from(table)
-        .insert(
-          isResource
+      const { error } = await admin.from(table).insert(
+        isAvatar
+          ? { id, owner_id: user.id, storage_path: storagePath }
+          : isResource
             ? {
                 ...resourceValues,
                 id,
@@ -384,14 +432,20 @@ export async function POST(request: Request, context: Context) {
                 storage_path: storagePath,
                 mime: verified.mime,
               },
-        );
+      );
       if (error) {
         await admin.storage.from(bucket).remove([storagePath]);
         check(error);
       }
       return NextResponse.json({
         id,
-        url: `/api/${isResource ? "resource" : "media"}/${id}`,
+        url: `/api/${isAvatar ? "avatar" : isResource ? "resource" : "media"}/${id}`,
+        ...(isAvatar
+          ? {
+              originalBytes: input.length,
+              optimizedBytes: verified.bytes.length,
+            }
+          : {}),
       });
     }
     const body = await json(request);
@@ -472,15 +526,13 @@ export async function POST(request: Request, context: Context) {
               .copy(media.storage_path, newPath);
             check(copyError);
             copied.push(newPath);
-            const { error: insertError } = await admin
-              .from("media")
-              .insert({
-                id: newId,
-                owner_id: user.id,
-                document_id: data.id,
-                storage_path: newPath,
-                mime: media.mime,
-              });
+            const { error: insertError } = await admin.from("media").insert({
+              id: newId,
+              owner_id: user.id,
+              document_id: data.id,
+              storage_path: newPath,
+              mime: media.mime,
+            });
             check(insertError);
             content = content.replaceAll(sourceId, newId);
           }
@@ -748,8 +800,22 @@ export async function POST(request: Request, context: Context) {
           handle: z.string().regex(/^[a-z0-9_-]{3,40}$/),
           bio: z.string().max(1000),
           avatar_resource_id: z.uuid().nullable(),
+          avatar_upload_id: z.uuid().nullable().default(null),
         })
         .parse(body);
+      if (profile.avatar_upload_id) {
+        if (profile.avatar_resource_id)
+          throw new HttpError(400, "Elige un solo avatar.");
+        const { data: avatar, error } = await db
+          .from("avatars")
+          .select("id")
+          .eq("id", profile.avatar_upload_id)
+          .eq("owner_id", user.id)
+          .maybeSingle();
+        check(error);
+        if (!avatar)
+          throw new HttpError(400, "El avatar debe pertenecer a tu cuenta.");
+      }
       if (profile.avatar_resource_id) {
         const resource = await canAccessResource(
           profile.avatar_resource_id,
@@ -766,7 +832,10 @@ export async function POST(request: Request, context: Context) {
         .update(profile)
         .eq("id", user.id);
       if (error?.code === "23505")
-        throw new HttpError(400, "Ese identificador ya está en uso.");
+        throw new HttpError(
+          400,
+          "Ese nombre de usuario ya está en uso. Elige otro.",
+        );
       check(error);
       return NextResponse.json({ ok: true });
     }

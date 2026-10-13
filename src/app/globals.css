@@ -1609,6 +1609,22 @@ input[type="range"] {
     padding-bottom: 100px;
   }
 }
+.profile-fields {
+  display: grid;
+  gap: 16px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.profile-avatar-preview {
+  margin: 12px 0;
+}
+.profile-avatar-preview img {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 @media print {
   html,
   body {

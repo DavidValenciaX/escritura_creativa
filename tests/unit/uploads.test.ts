@@ -1,9 +1,39 @@
 import { describe, it, expect } from "vitest";
-import { verifyFile, prepareUpload } from "../../src/lib/uploads";
+import {
+  verifyFile,
+  prepareUpload,
+  prepareAvatar,
+} from "../../src/lib/uploads";
+import { randomBytes } from "node:crypto";
 import sharp from "sharp";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 describe("upload validation", () => {
+  it("resizes and compresses a large avatar to a bounded WebP without metadata", async () => {
+    const original = await sharp(randomBytes(1600 * 1000 * 3), {
+      raw: { width: 1600, height: 1000, channels: 3 },
+    })
+      .jpeg({ quality: 95 })
+      .withMetadata()
+      .toBuffer();
+    const avatar = await prepareAvatar(original, "image/jpeg");
+    const metadata = await sharp(avatar.bytes).metadata();
+    expect(metadata.format).toBe("webp");
+    expect(metadata.width).toBe(512);
+    expect(metadata.height).toBe(512);
+    expect(metadata.exif).toBeUndefined();
+    expect(metadata.icc).toBeUndefined();
+    expect(avatar.bytes.length).toBeLessThan(original.length);
+    expect(avatar.bytes.length).toBeLessThanOrEqual(256 * 1024);
+  });
+  it("rejects oversized and malformed avatars", async () => {
+    await expect(
+      prepareAvatar(new Uint8Array(4 * 1024 * 1024 + 1), "image/png"),
+    ).rejects.toThrow("4 MB");
+    await expect(
+      prepareAvatar(new Uint8Array([255, 216, 255, 0]), "image/jpeg"),
+    ).rejects.toThrow("dañada");
+  });
   it("accepts a real WOFF2 font from the bundled catalogue", () => {
     const font = readFileSync(
       join(

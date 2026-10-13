@@ -77,3 +77,26 @@ export async function prepareUpload(
     );
   }
 }
+
+export async function prepareAvatar(bytes: Uint8Array, reportedType: string) {
+  if (bytes.length > 4 * 1024 * 1024)
+    throw new HttpError(400, "El avatar debe pesar hasta 4 MB.");
+  verifyFile(bytes, "image", reportedType);
+  try {
+    const normalized = await sharp(bytes, {
+      limitInputPixels: 24000000,
+      failOn: "warning",
+    })
+      .rotate()
+      .resize(512, 512, { fit: "cover", withoutEnlargement: true })
+      .webp({ quality: 78, effort: 4 })
+      .toBuffer();
+    if (normalized.length > 256 * 1024) throw new Error("too large");
+    return { mime: "image/webp", extension: "webp", bytes: normalized };
+  } catch {
+    throw new HttpError(
+      400,
+      "La imagen está dañada o no se puede optimizar. Usa una imagen de hasta 24 megapíxeles.",
+    );
+  }
+}

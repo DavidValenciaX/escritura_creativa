@@ -97,6 +97,61 @@ describe("migrations and PostgreSQL RLS", () => {
       ).rows[0].count,
     ).toBe(3);
   });
+  it("keeps avatar uploads private and rejects assigning another account's avatar", async () => {
+    const avatar = randomUUID(),
+      otherAvatar = randomUUID();
+    await pg.query(
+      "insert into avatars(id,owner_id,storage_path) values($1,$2,$3),($4,$5,$6)",
+      [
+        avatar,
+        owner,
+        `${owner}/${avatar}.webp`,
+        otherAvatar,
+        stranger,
+        `${stranger}/${otherAvatar}.webp`,
+      ],
+    );
+    await as("anon", null, "", async () => {
+      expect((await pg.query("select * from avatars")).rows).toHaveLength(0);
+    });
+    await as("authenticated", owner, "owner@example.com", async () => {
+      expect((await pg.query("select * from avatars")).rows).toHaveLength(1);
+      await expect(
+        pg.query("update profiles set avatar_upload_id=$1 where id=$2", [
+          otherAvatar,
+          owner,
+        ]),
+      ).rejects.toThrow("pertenecer");
+      await pg.query(
+        "update profiles set avatar_upload_id=$1,handle='mi-nombre-publico' where id=$2",
+        [avatar, owner],
+      );
+      const profile = await pg.query<{ id: string; handle: string }>(
+        "select id,handle from profiles where id=$1",
+        [owner],
+      );
+      expect(profile.rows[0]).toEqual({
+        id: owner,
+        handle: "mi-nombre-publico",
+      });
+      await expect(
+        pg.query(
+          "insert into avatars(owner_id,storage_path) values($1,'forged.webp')",
+          [owner],
+        ),
+      ).rejects.toThrow("row-level security");
+    });
+    expect(
+      (
+        await pg.query<{ public: boolean }>(
+          "select public from storage.buckets where id='avatars'",
+        )
+      ).rows[0].public,
+    ).toBe(false);
+    await pg.query("update profiles set avatar_upload_id=null where id=$1", [
+      owner,
+    ]);
+  });
   it("does not expose drafts or tokens to recipients or strangers", async () => {
     for (const [id, email] of [
       [reader, "reader@example.com"],

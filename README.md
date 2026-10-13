@@ -35,6 +35,12 @@ La ruta `/admin` aparece para administradores. Ocultar un recurso lo retira del 
 
 ## Cómo se comparte
 
+En **Mi perfil**, el nombre de usuario público es editable y único: 3–40 caracteres en minúsculas, números, guiones o guiones bajos. La dirección se muestra antes de guardar; cambiarla no cambia el UUID ni los textos, pero los enlaces al perfil anterior dejarán de resolver.
+
+Puedes subir un avatar propio JPEG, PNG o WebP de hasta 4 MB. El servidor verifica y decodifica la imagen (máximo 24 megapíxeles), aplica su orientación, recorta al centro a un máximo de 512 × 512, elimina metadatos y la convierte a WebP con calidad 78. El archivo resultante pesa como máximo 256 KB. Se conserva en el bucket privado `avatars`; se puede previsualizar como propietario y pasa a lectura pública cuando guardas el perfil. No se publica en el catálogo de recursos. Se puede volver a la inicial o elegir una imagen comunitaria.
+
+La migración `202610130001_avatars.sql` crea el almacenamiento y valida también en PostgreSQL que el avatar propio pertenezca a la cuenta. Aplica las migraciones antes de desplegar el nuevo código; el workflow de producción ya sigue ese orden.
+
 - Borradores en `documents`, accesibles únicamente por el autor. La lectura usa una copia en `publications`, actualizada explícitamente.
 - Publicar crea una versión de lectura; marcar «Mostrar también en el muro público» permite su descubrimiento público. Actualizar el borrador nunca actualiza automáticamente esa copia.
 - Los accesos por correo dan lectura a una cuenta con ese correo verificado. Compartir un cuaderno concede acceso a entradas publicadas actuales y futuras. No enviamos una invitación por correo: el destinatario entra en la aplicación y abre «Compartido conmigo».

@@ -39,6 +39,7 @@ export default async function Page() {
         profile={profile}
         images={images ?? []}
         email={user.email ?? ""}
+        siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
       />
     </Shell>
   );
