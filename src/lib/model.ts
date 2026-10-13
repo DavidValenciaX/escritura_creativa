@@ -1,13 +1,21 @@
 import { z } from "zod";
 export const papers = [
-  { key: "cream", name: "Marfil", note: "El comienzo de una buena carta" },
-  { key: "cotton", name: "Algodón", note: "Natural y sereno" },
-  { key: "lined", name: "Cuaderno", note: "Para lo que sucede cada día" },
-  { key: "vintage", name: "Papel antiguo", note: "Historias que permanecen" },
-  { key: "rose", name: "Rosa suave", note: "Un gesto de cariño" },
-  { key: "botanical", name: "Botánico", note: "Un pequeño refugio" },
-  { key: "grid", name: "Cuadrícula", note: "Ideas por descubrir" },
-  { key: "white", name: "Editorial", note: "Espacio para las palabras" },
+  { key: "cream", name: "Marfil", note: "Fondo marfil con textura suave" },
+  { key: "cotton", name: "Algodón", note: "Textura de papel de algodón" },
+  { key: "lined", name: "Cuaderno", note: "Papel con líneas horizontales" },
+  {
+    key: "vintage",
+    name: "Papel antiguo",
+    note: "Textura de papel envejecido",
+  },
+  { key: "rose", name: "Rosa suave", note: "Fondo rosa claro" },
+  {
+    key: "botanical",
+    name: "Botánico",
+    note: "Fondo verde con detalles botánicos",
+  },
+  { key: "grid", name: "Cuadrícula", note: "Papel con cuadrícula" },
+  { key: "white", name: "Editorial", note: "Fondo blanco liso" },
 ];
 export const fonts = [
   { key: "caveat", name: "Caveat", family: "Caveat", kind: "Manuscrita" },

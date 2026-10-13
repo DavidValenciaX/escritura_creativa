@@ -512,7 +512,7 @@ export function WritingEditor({
         <div className="notice screen-only">
           <span>
             Otra pestaña cambió este texto. El autoguardado está detenido para
-            conservar tus palabras.
+            conservar tus cambios.
           </span>
           <button className="button" onClick={() => void inspectRemote()}>
             Revisar versiones
@@ -687,7 +687,7 @@ export function WritingEditor({
                 onBlur={() => {
                   if (!draft.title.trim()) change("title", "Sin título");
                 }}
-                placeholder="Dale un título a tus palabras"
+                placeholder="Título del texto"
               />
               <EditorContent editor={editor} />
               <input
@@ -695,14 +695,14 @@ export function WritingEditor({
                 aria-label="Firma"
                 disabled={actionBusy || !hydrated}
                 maxLength={500}
-                placeholder="Tu firma, si quieres…"
+                placeholder="Firma (opcional)"
                 value={draft.signature}
                 onChange={(e) => change("signature", e.target.value)}
               />
             </div>
           </div>
           <aside className="design-panel">
-            <h3>El papel de tus palabras</h3>
+            <h3>Formato del texto</h3>
             <p className="eyebrow">PAPEL</p>
             <div className="paper-picker">
               {papers.map((p) => (

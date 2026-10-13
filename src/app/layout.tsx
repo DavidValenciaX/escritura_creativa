@@ -13,11 +13,11 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   ),
   title: {
-    default: "Escritura Creativa · Tu estudio de palabras",
+    default: "Escritura Creativa",
     template: "%s · Escritura Creativa",
   },
   description:
-    "Un estudio para escribir cartas, poemas e historias con papeles y tipografías que les dan vida.",
+    "Plataforma para escribir y organizar textos, personalizar su formato y compartir publicaciones.",
 };
 export default function RootLayout({
   children,

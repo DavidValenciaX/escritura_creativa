@@ -59,7 +59,6 @@ export async function Shell({
             escritura<span className="brand-sub">CREATIVA</span>
           </span>
         </Link>
-        <div className="topbar-note">Un espacio para lo que quieres decir.</div>
         <Link className="account-link" href={user ? "/settings" : "/login"}>
           {user ? (
             <>
@@ -77,7 +76,6 @@ export async function Shell({
       </header>
       <div className="app-body">
         <aside className="sidebar">
-          <p className="eyebrow">TU ESPACIO DE ESCRITURA</p>
           <nav aria-label="Principal">
             {items.map(({ href, label, icon: Icon }) => (
               <Link
@@ -92,10 +90,6 @@ export async function Shell({
             ))}
           </nav>
           <div className="sidebar-bottom">
-            <div className="sidebar-quote">
-              “Las palabras son una forma de volver a casa.”
-              <span>Una página a la vez.</span>
-            </div>
             {user && (
               <Link className="nav-item" href="/settings">
                 <Settings size={18} /> Ajustes del perfil
@@ -111,14 +105,17 @@ export async function Shell({
                 className={configured() ? "status-dot" : "status-dot amber"}
               />
               {configured()
-                ? "Tu espacio, conectado"
+                ? "Conectado"
                 : "Vista local · sin conexión a Supabase"}
             </div>
           </div>
         </aside>
         <main className="main-content">{children}</main>
       </div>
-      <nav className="mobile-navigation screen-only" aria-label="Navegación móvil">
+      <nav
+        className="mobile-navigation screen-only"
+        aria-label="Navegación móvil"
+      >
         {items.map(({ href, short, icon: Icon }) => (
           <Link
             key={href}

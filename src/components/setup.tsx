@@ -1,10 +1,6 @@
 import Link from "next/link";
 import { BookOpen, ArrowUpRight, Server } from "lucide-react";
-export function Setup({
-  title = "El estudio está listo para conectarse",
-}: {
-  title?: string;
-}) {
+export function Setup({ title = "Conexión pendiente" }: { title?: string }) {
   return (
     <section className="setup-panel">
       <div className="setup-icon">
@@ -37,11 +33,10 @@ export function SignInRequired() {
   return (
     <section className="setup-panel">
       <BookOpen size={28} />
-      <p className="eyebrow">UN ESPACIO SOLO TUYO</p>
-      <h1>Entra a tu estudio</h1>
+      <h1>Inicia sesión para continuar</h1>
       <p>
-        Guarda tus textos, organiza tus cuadernos y comparte tus palabras con
-        quien quieras.
+        Inicia sesión para guardar textos, organizar cuadernos y gestionar el
+        acceso a tus publicaciones.
       </p>
       <Link href="/login" className="button primary">
         Iniciar sesión <ArrowUpRight size={17} />

@@ -11,12 +11,7 @@ export function Login() {
   return (
     <section className="login-panel">
       <Mail size={30} />
-      <p className="eyebrow">BIENVENIDO A TU ESTUDIO</p>
-      <h1>
-        Un correo.
-        <br />
-        Tu espacio de palabras.
-      </h1>
+      <h1>Iniciar sesión</h1>
       {sent ? (
         <div role="status">
           <h3>Revisa tu correo</h3>
@@ -67,7 +62,7 @@ export function Login() {
             <ArrowUpRight size={17} />
           </button>
           <p className="muted">
-            Sin contraseña. Solo tú puedes entrar con el enlace de tu correo.
+            Recibirás un enlace de acceso por correo electrónico.
           </p>
         </form>
       )}

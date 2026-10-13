@@ -42,7 +42,7 @@ export default async function Page({
         <div>
           <p className="eyebrow">@{profile.handle}</p>
           <h1>{profile.display_name}</h1>
-          <p>{profile.bio || "Una voz, un espacio para sus palabras."}</p>
+          {profile.bio && <p>{profile.bio}</p>}
         </div>
       </section>
       <Publications

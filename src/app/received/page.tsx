@@ -51,9 +51,8 @@ export default async function Page() {
     <Shell active="/received">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">ALGUIEN PENSÓ EN TI</p>
           <h1>Compartido conmigo</h1>
-          <p>Cuadernos y textos que tienen un lugar para ti.</p>
+          <p>Cuadernos y textos a los que te han concedido acceso.</p>
         </div>
       </div>
       {notebooks?.map((n) => (

@@ -162,10 +162,6 @@ input[type="range"] {
   margin-top: 7px;
   color: var(--muted);
 }
-.topbar-note {
-  color: #979a8d;
-  font-size: 12px;
-}
 .account-link {
   margin-left: auto;
   display: flex;
@@ -239,22 +235,7 @@ input[type="range"] {
 }
 .sidebar-bottom {
   margin-top: auto;
-  padding-top: 95px;
-}
-.sidebar-quote {
-  font-family: "Lora", serif;
-  font-size: 16px;
-  line-height: 1.8;
-  color: #838775;
-  padding: 0 12px 30px;
-  max-width: 190px;
-}
-.sidebar-quote span {
-  display: block;
-  font-family: Arial, sans-serif;
-  font-size: 10px;
-  margin-top: 14px;
-  color: #9da18f;
+  padding-top: 24px;
 }
 .connection {
   display: flex;
@@ -347,14 +328,6 @@ input[type="range"] {
   margin: auto;
   width: 100%;
   padding: 20px 0;
-}
-.paper-note {
-  font-family: "Caveat", cursive;
-  color: #959981;
-  font-size: 20px;
-  position: absolute;
-  top: -12px;
-  left: 10px;
 }
 .hero-paper-wrap .letter {
   min-height: 390px;
@@ -1301,9 +1274,6 @@ input[type="range"] {
   }
   .design-panel {
     padding: 18px;
-  }
-  .topbar-note {
-    display: none;
   }
 }
 @media (max-width: 850px) {

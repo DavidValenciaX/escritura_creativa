@@ -26,9 +26,9 @@ function Preview({ resource: r }: { resource: Resource }) {
             className="font-sample"
             style={{ fontFamily: `"${family(r.builtin_key ?? r.id)}",serif` }}
           >
-            Querida vida,
+            Aa Bb Cc
             <br />
-            aquí estoy.
+            0123456789
           </span>
           <small>Á É Í Ó Ú · Ñ · ¿ ¡</small>
         </>
@@ -36,11 +36,7 @@ function Preview({ resource: r }: { resource: Resource }) {
         <img src={`/api/resource/${r.id}`} alt={r.description || r.name} />
       ) : (
         <>
-          <span className="sample-script">
-            Una página,
-            <br />
-            mil posibilidades.
-          </span>
+          <span className="sample-script">Muestra de texto</span>
           <small>{r.name.toUpperCase()}</small>
         </>
       )}
@@ -121,12 +117,8 @@ export function ResourceLibrary({
     <section>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">UNA BIBLIOTECA QUE CRECE CONTIGO</p>
-          <h1>El fondo de tus palabras</h1>
-          <p>
-            Papeles, letras e imágenes. Encuentra el carácter de tu próximo
-            texto.
-          </p>
+          <h1>Biblioteca de recursos</h1>
+          <p>Papeles, tipografías e imágenes para aplicar a tus textos.</p>
         </div>
         {user && connected ? (
           <button className="button primary" onClick={() => setUpload(true)}>
@@ -165,7 +157,7 @@ export function ResourceLibrary({
           <Search size={17} />
           <input
             aria-label="Buscar recursos"
-            placeholder="Una textura, una letra, una idea…"
+            placeholder="Buscar recursos"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -209,7 +201,7 @@ export function ResourceLibrary({
           <div className="empty-state">
             <h2>
               {kind === "image"
-                ? "Imágenes para nuevas historias"
+                ? "No hay imágenes disponibles"
                 : "No encontramos ese recurso"}
             </h2>
             <p>
@@ -262,7 +254,7 @@ export function ResourceLibrary({
         </Modal>
       )}
       {upload && (
-        <Modal title="Un recurso para todos" onClose={() => setUpload(false)}>
+        <Modal title="Aportar un recurso" onClose={() => setUpload(false)}>
           <form onSubmit={contribute}>
             <p className="muted">
               Tu aporte aparecerá inmediatamente en la biblioteca. Comparte solo

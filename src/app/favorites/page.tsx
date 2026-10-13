@@ -43,15 +43,14 @@ export default async function Page() {
     <Shell active="/favorites">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">PALABRAS A LAS QUE VOLVER</p>
           <h1>Mis favoritos</h1>
-          <p>Una pequeña colección de textos que te acompañan.</p>
+          <p>Textos que has guardado como favoritos.</p>
         </div>
       </div>
       <Publications
         entries={await enrich((data ?? []) as Publication[], user.id)}
         canFavorite
-        empty="Tu colección está por empezar"
+        empty="No tienes textos favoritos"
       />
     </Shell>
   );

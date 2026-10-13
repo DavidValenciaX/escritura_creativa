@@ -10,7 +10,7 @@ export default async function Page() {
   if (!configured())
     return (
       <Shell active="/wall">
-        <Setup title="Las palabras de otros, muy pronto" />
+        <Setup title="Muro de escritores no disponible" />
       </Shell>
     );
   const db = await supabase();
@@ -25,9 +25,8 @@ export default async function Page() {
     <Shell active="/wall">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">UNA VENTANA A OTROS MUNDOS</p>
           <h1>Muro de escritores</h1>
-          <p>Cartas, poemas e historias que alguien quiso compartir.</p>
+          <p>Textos publicados por la comunidad.</p>
         </div>
       </div>
       <Publications

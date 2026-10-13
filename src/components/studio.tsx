@@ -157,9 +157,7 @@ export function Studio() {
     <section>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">TUS PALABRAS, A TU RITMO</p>
           <h1>Mi estudio</h1>
-          <p>Una página en blanco. Todo lo que quieras decir.</p>
         </div>
         <button
           className="button primary"
@@ -189,7 +187,7 @@ export function Studio() {
           <Search size={17} />
           <input
             aria-label="Buscar mis textos"
-            placeholder="Buscar entre tus palabras…"
+            placeholder="Buscar textos"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -225,9 +223,7 @@ export function Studio() {
         <div className="notebook-bar">
           <div>
             <h3>{currentBook.title}</h3>
-            <p>
-              {currentBook.description || "Un lugar para reunir tus textos."}
-            </p>
+            <p>{currentBook.description || "Sin descripción."}</p>
           </div>
           <div className="actions">
             <button
@@ -301,10 +297,7 @@ export function Studio() {
                       })}
                     </span>
                     <h3>{doc.title}</h3>
-                    <p>
-                      {textContent(doc.content) ||
-                        "Las primeras palabras te están esperando…"}
-                    </p>
+                    <p>{textContent(doc.content) || "Texto vacío"}</p>
                   </div>
                 </button>
                 <div className="card-meta">
@@ -408,13 +401,13 @@ export function Studio() {
               <BookOpen size={34} />
               <h2>
                 {search
-                  ? "No encontramos esas palabras"
-                  : "Tu próxima historia empieza aquí"}
+                  ? "No se encontraron textos"
+                  : "No hay textos en esta vista"}
               </h2>
               <p>
                 {search
                   ? "Prueba con otro título o parte del contenido."
-                  : "Crea tu primer texto. El papel, la letra y las palabras los eliges tú."}
+                  : "Usa «Escribir un texto» para crear un borrador."}
               </p>
             </div>
           )}
@@ -457,7 +450,7 @@ export function Studio() {
                 maxLength={160}
                 value={bookTitle}
                 onChange={(e) => setBookTitle(e.target.value)}
-                placeholder="Cartas para alguien, días para recordar…"
+                placeholder="Nombre del cuaderno"
               />
             </label>
             <label>

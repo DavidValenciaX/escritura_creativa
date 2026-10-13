@@ -14,16 +14,10 @@ export default function Home() {
     <Shell active="/studio">
       <section className="welcome-heading">
         <div>
-          <p className="eyebrow">PALABRAS QUE MERECEN SU PROPIO PAPEL</p>
-          <h1>
-            Hay cosas que solo
-            <br />
-            se dicen <em>escribiendo.</em>
-          </h1>
+          <h1>Escritura Creativa</h1>
           <p className="lead">
-            Cartas, recuerdos, poemas. Un pequeño estudio para
-            <br className="desktop-only" /> encontrar las palabras y darles un
-            lugar donde quedarse.
+            Escribe y organiza tus textos en cuadernos, personaliza su formato y
+            comparte versiones de lectura.
           </p>
           <div className="hero-actions">
             <Link href="/studio" className="button primary">
@@ -35,16 +29,15 @@ export default function Home() {
           </div>
         </div>
         <div className="hero-paper-wrap">
-          <span className="paper-note">Tu próxima historia empieza aquí</span>
           <Letter
-            title="A las cosas pequeñas"
+            title="Texto de ejemplo"
             written_on="2026-10-11"
             appearance={{
               ...defaultAppearance,
               bodyFont: "garamond",
               fontSize: 20,
             }}
-            signature="Con cariño,"
+            signature=""
             content={{
               type: "doc",
               content: [
@@ -53,7 +46,7 @@ export default function Home() {
                   content: [
                     {
                       type: "text",
-                      text: "Hoy quiero escribir sobre lo que a veces pasa desapercibido. La luz que entra por la ventana. El café que se enfría mientras hablamos. Tu manera de decir mi nombre.",
+                      text: "Este texto muestra el formato de una página con papel Marfil, título en Caveat y cuerpo en EB Garamond.",
                     },
                   ],
                 },
@@ -62,7 +55,7 @@ export default function Home() {
                   content: [
                     {
                       type: "text",
-                      text: "Quizá escribir sea eso: guardar un poco de lo que no queremos olvidar.",
+                      text: "En el editor puedes cambiar el papel, las tipografías, el tamaño de letra y el interlineado.",
                     },
                   ],
                 },
@@ -70,19 +63,14 @@ export default function Home() {
             }}
           />
           <span className="specimen-label">
-            Una carta de muestra · papel Marfil + Caveat
+            Ejemplo de formato · Marfil, Caveat y EB Garamond
           </span>
         </div>
       </section>
       <section className="home-details">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">HECHO PARA ESCRIBIR, A TU MANERA</p>
-            <h2>
-              Las palabras son tuyas.
-              <br />
-              El espacio también.
-            </h2>
+            <h2>Herramientas de escritura</h2>
           </div>
           <span className="small-rule" />
         </div>
@@ -90,11 +78,8 @@ export default function Home() {
           <Link href="/studio">
             <BookOpen size={24} />
             <span className="feature-number">01</span>
-            <h3>Tu propio estudio</h3>
-            <p>
-              Ordena tus textos en cuadernos. Deja reposar un borrador y vuelve
-              cuando tengas algo más que decir.
-            </p>
+            <h3>Textos y cuadernos</h3>
+            <p>Crea borradores y organiza tus textos en cuadernos.</p>
             <span className="feature-link">
               Entrar al estudio <ArrowUpRight size={16} />
             </span>
@@ -102,11 +87,8 @@ export default function Home() {
           <Link href="/resources">
             <Library size={24} />
             <span className="feature-number">02</span>
-            <h3>Papeles con carácter</h3>
-            <p>
-              Elige una textura y una letra. Explora una biblioteca de recursos
-              que crece con cada escritor.
-            </p>
+            <h3>Recursos de formato</h3>
+            <p>Selecciona papeles, tipografías e imágenes para tus textos.</p>
             <span className="feature-link">
               Explorar la biblioteca <ArrowUpRight size={16} />
             </span>
@@ -114,10 +96,10 @@ export default function Home() {
           <Link href="/wall">
             <Feather size={24} />
             <span className="feature-number">03</span>
-            <h3>Algo para compartir</h3>
+            <h3>Publicación y acceso</h3>
             <p>
-              Una carta para alguien. Un enlace para unos pocos. O unas palabras
-              abiertas al mundo. Tú decides.
+              Comparte textos por enlace, concede acceso a personas o publica en
+              el muro de escritores.
             </p>
             <span className="feature-link">
               Leer a otros escritores <ArrowUpRight size={16} />
@@ -127,7 +109,6 @@ export default function Home() {
       </section>
       <footer className="page-footer">
         <span>ESCRITURA CREATIVA</span>
-        <span>Sin prisa. Sin ruido. Con palabras.</span>
         <Feather size={16} />
       </footer>
     </Shell>

@@ -95,7 +95,6 @@ export function Reading({
       </header>
       {notebook && (
         <div className="reader-heading">
-          <p className="eyebrow">UN CUADERNO PARA LEER CON CALMA</p>
           <h1>{notebook.title}</h1>
           <p className="muted">{notebook.description}</p>
         </div>
@@ -132,7 +131,7 @@ export function Reading({
           {!publications.length && (
             <div className="empty-state">
               <BookOpen size={32} />
-              <h2>Las primeras páginas están por llegar</h2>
+              <h2>Sin entradas publicadas</h2>
               <p>Este cuaderno todavía no tiene entradas publicadas.</p>
             </div>
           )}

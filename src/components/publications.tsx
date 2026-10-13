@@ -130,7 +130,7 @@ export function Publications({
             <p>
               {search
                 ? "Prueba otro título o nombre de autor."
-                : "Cuando alguien comparta sus palabras, encontrarás aquí una página para leer con calma."}
+                : "Los textos disponibles se mostrarán aquí."}
             </p>
           </div>
         )}

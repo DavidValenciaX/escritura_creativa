@@ -48,7 +48,6 @@ export function Settings({
     <section>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">LA VOZ DETRÁS DE TUS PALABRAS</p>
           <h1>Mi perfil</h1>
           <p>{email} · tu correo nunca se muestra en el perfil público.</p>
         </div>

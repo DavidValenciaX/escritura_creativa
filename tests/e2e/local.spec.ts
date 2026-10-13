@@ -4,7 +4,9 @@ test("homepage and library fit the viewport and contain real initial assets", as
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Hay cosas/ })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Escritura Creativa", exact: true }),
+  ).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -16,7 +18,7 @@ test("homepage and library fit the viewport and contain real initial assets", as
   });
   await page.goto("/resources");
   await expect(
-    page.getByRole("heading", { name: "El fondo de tus palabras" }),
+    page.getByRole("heading", { name: "Biblioteca de recursos" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Marfil", exact: true }),

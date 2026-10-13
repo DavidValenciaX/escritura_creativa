@@ -35,7 +35,6 @@ export function Moderation({ initial }: { initial: Report[] }) {
     <section>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">CUIDAR ESTE ESPACIO</p>
           <h1>Moderación</h1>
           <p>
             Revisa los reportes y retira del catálogo o del muro lo que
@@ -89,8 +88,7 @@ export function Moderation({ initial }: { initial: Report[] }) {
       ))}
       {!reports.length && (
         <div className="empty-state">
-          <h2>Todo está en calma</h2>
-          <p>No hay reportes pendientes.</p>
+          <h2>Sin reportes pendientes</h2>
         </div>
       )}
     </section>
