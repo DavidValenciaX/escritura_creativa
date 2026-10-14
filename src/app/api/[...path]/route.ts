@@ -482,6 +482,34 @@ export async function POST(request: Request, context: Context) {
       }
       const id = z.uuid().parse(body.id);
       const { document } = await ownedDocument(id);
+      if (body.action === "move") {
+        const notebook = z.uuid().nullable().parse(body.notebook_id);
+        const expected = z.number().int().positive().parse(body.revision);
+        if (notebook) {
+          const { data: owns, error } = await db.rpc("owns_target", {
+            doc: null,
+            book: notebook,
+          });
+          check(error);
+          if (!owns)
+            throw new HttpError(403, "El cuaderno no pertenece a tu cuenta.");
+        }
+        const { data, error } = await db
+          .from("documents")
+          .update({ notebook_id: notebook, revision: expected + 1 })
+          .eq("id", id)
+          .eq("owner_id", user.id)
+          .eq("revision", expected)
+          .select("*")
+          .maybeSingle();
+        check(error);
+        if (!data)
+          throw new HttpError(
+            409,
+            "El escrito cambió en otra pestaña. Actualiza el estudio antes de moverlo.",
+          );
+        return NextResponse.json(data);
+      }
       if (body.action === "save") {
         const draft = draftSchema.parse(body.draft);
         await validateReferences(draft, document);

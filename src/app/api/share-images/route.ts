@@ -8,7 +8,7 @@ import {
   HttpError,
   boundedJson,
 } from "@/lib/http";
-import { socialCards, publicationText } from "@/lib/social";
+import { publicationText } from "@/lib/social";
 import { service } from "@/lib/supabase/server";
 export async function POST(request: Request) {
   try {
@@ -42,14 +42,11 @@ export async function POST(request: Request) {
     const text = [publicationText(p.content).trim(), p.signature]
       .filter(Boolean)
       .join("\n\n");
-    const cards = await socialCards(p.title, text, p.appearance.ink);
     return NextResponse.json(
       {
         title: p.title,
         text,
-        images: cards.map(
-          (card) => `data:image/jpeg;base64,${card.toString("base64")}`,
-        ),
+        publication: p,
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );

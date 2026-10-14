@@ -412,6 +412,86 @@ describe("migrations and PostgreSQL RLS", () => {
         .rows,
     ).toHaveLength(1);
   });
+  it("moves notebook membership without publishing drafts and removes notebook-only access when detached", async () => {
+    const movedDoc = randomUUID(),
+      destination = randomUUID();
+    await as("authenticated", owner, "owner@example.com", async () => {
+      await pg.query(
+        "insert into notebooks(id,owner_id,title) values($1,$2,'Destino')",
+        [destination, owner],
+      );
+      await pg.query(
+        "insert into documents(id,owner_id,title,appearance) values($1,$2,'Publicado',$3)",
+        [movedDoc, owner, JSON.stringify(appearance)],
+      );
+      await pg.query("select publish_document($1,1,false)", [movedDoc]);
+      await pg.query(
+        "update documents set title='Borrador nuevo' where id=$1",
+        [movedDoc],
+      );
+      const moved = await pg.query<{ revision: number; title: string }>(
+        "update documents set notebook_id=$1,revision=revision+1 where id=$2 and revision=2 returning revision,title",
+        [destination, movedDoc],
+      );
+      expect(moved.rows[0]).toEqual({ revision: 3, title: "Borrador nuevo" });
+      await pg.query(
+        "insert into grants(owner_id,notebook_id,recipient_email) values($1,$2,'reader@example.com')",
+        [owner, destination],
+      );
+    });
+    await as("authenticated", reader, "reader@example.com", async () => {
+      expect(
+        (
+          await pg.query<{ title: string }>(
+            "select title from read_notebook($1)",
+            [destination],
+          )
+        ).rows,
+      ).toEqual([{ title: "Publicado" }]);
+      expect(
+        (await pg.query("select id from documents where id=$1", [movedDoc]))
+          .rows,
+      ).toEqual([]);
+    });
+    await as("authenticated", stranger, "stranger@example.com", async () => {
+      expect(
+        (
+          await pg.query(
+            "update documents set notebook_id=null where id=$1 returning id",
+            [movedDoc],
+          )
+        ).rows,
+      ).toEqual([]);
+    });
+    await as("authenticated", owner, "owner@example.com", async () => {
+      expect(
+        (
+          await pg.query(
+            "update documents set notebook_id=null where id=$1 and revision=2 returning id",
+            [movedDoc],
+          )
+        ).rows,
+      ).toEqual([]);
+      await pg.query(
+        "update documents set notebook_id=null,revision=revision+1 where id=$1 and revision=3",
+        [movedDoc],
+      );
+    });
+    await as("authenticated", reader, "reader@example.com", async () => {
+      expect(
+        (await pg.query("select * from read_notebook($1)", [destination])).rows,
+      ).toEqual([]);
+      expect(
+        (
+          await pg.query("select * from publications where document_id=$1", [
+            movedDoc,
+          ])
+        ).rows,
+      ).toEqual([]);
+    });
+    await pg.query("delete from documents where id=$1", [movedDoc]);
+    await pg.query("delete from notebooks where id=$1", [destination]);
+  });
   it("blocks republication after moderation and prevents admin escalation", async () => {
     await pg.query("insert into blocked_publications(document_id) values($1)", [
       doc,

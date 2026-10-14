@@ -8,3 +8,4 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 .vercel/
+client_secret_*.json

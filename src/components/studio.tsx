@@ -72,6 +72,9 @@ export function Studio() {
   const [bookTitle, setBookTitle] = useState("");
   const [bookDescription, setBookDescription] = useState("");
   const [sharingBook, setSharingBook] = useState<Notebook | null>(null);
+  const [moving, setMoving] = useState<Document | null>(null);
+  const [destination, setDestination] = useState("");
+  const [moveError, setMoveError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{
     type: "documents" | "notebooks";
     id: string;
@@ -318,6 +321,18 @@ export function Studio() {
                     Seguir escribiendo
                   </button>
                   <div style={{ display: "flex" }}>
+                    <button
+                      className="text-button move-notebook-button"
+                      aria-label={`Mover a cuaderno: ${doc.title}`}
+                      disabled={busy}
+                      onClick={() => {
+                        setMoving(doc);
+                        setDestination(doc.notebook_id ?? "");
+                        setMoveError("");
+                      }}
+                    >
+                      <BookOpen size={13} /> Mover
+                    </button>
                     {currentBook && (
                       <>
                         <button
@@ -412,6 +427,65 @@ export function Studio() {
             </div>
           )}
         </div>
+      )}
+      {moving && (
+        <Modal
+          title="Mover a cuaderno"
+          onClose={() => {
+            if (!busy) setMoving(null);
+          }}
+        >
+          <p>{moving.title}</p>
+          <p className="muted">
+            Elige un cuaderno o «Sin cuaderno» para sacar el escrito. Si ya
+            tiene una versión publicada, también cambiará el cuaderno desde el
+            que se puede leer; el borrador no se publica.
+          </p>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setBusy(true);
+              setMoveError("");
+              try {
+                await api("documents", {
+                  action: "move",
+                  id: moving.id,
+                  revision: moving.revision,
+                  notebook_id: destination || null,
+                });
+                await load();
+                setMoving(null);
+              } catch (e) {
+                setMoveError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <label>
+              Cuaderno de destino
+              <select
+                value={destination}
+                disabled={busy}
+                onChange={(e) => setDestination(e.target.value)}
+              >
+                <option value="">Sin cuaderno</option>
+                {notebooks.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {n.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <ErrorMessage message={moveError} />
+            <button
+              className="button primary"
+              disabled={busy || destination === (moving.notebook_id ?? "")}
+            >
+              {busy ? "Moviendo…" : "Mover escrito"}
+            </button>
+          </form>
+        </Modal>
       )}
       {bookModal && (
         <Modal

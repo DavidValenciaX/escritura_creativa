@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   service: vi.fn(),
   ensure: vi.fn(),
   links: [] as Record<string, unknown>[],
+  documents: [] as Record<string, unknown>[],
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/access", async () => {
@@ -38,11 +39,16 @@ function database(admin = false) {
           return query;
         },
         update: (value: Record<string, unknown>) => {
-          if (!admin) throw new Error("Client mutations are prohibited");
+          if (!admin && table === "share_links")
+            throw new Error("Client mutations are prohibited");
           changes = value;
           return query;
         },
         single: () => {
+          single = true;
+          return query;
+        },
+        maybeSingle: () => {
           single = true;
           return query;
         },
@@ -53,8 +59,14 @@ function database(admin = false) {
               revoked_at: null,
               ...inserted,
             });
-          const rows = (table === "share_links" ? mocks.links : []).filter(
-            (row) => filters.every(([key, value]) => row[key] === value),
+          const rows = (
+            table === "share_links"
+              ? mocks.links
+              : table === "documents"
+                ? mocks.documents
+                : []
+          ).filter((row) =>
+            filters.every(([key, value]) => row[key] === value),
           );
           if (changes) rows.forEach((row) => Object.assign(row, changes));
           return Promise.resolve({
@@ -84,20 +96,30 @@ const target = {
   document_id: "11111111-1111-4111-8111-111111111111",
   notebook_id: null,
 };
-function post(body: object) {
+function post(body: object, path = "sharing") {
   return POST(
-    new Request("https://app.example/api/sharing", {
+    new Request(`https://app.example/api/${path}`, {
       method: "POST",
       headers: { origin: "https://app.example" },
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ path: ["sharing"] }) },
+    { params: Promise.resolve({ path: [path] }) },
   );
 }
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.owns = true;
   mocks.links = [];
+  mocks.documents = [
+    {
+      id: target.document_id,
+      owner_id: "owner",
+      notebook_id: null,
+      revision: 1,
+      title: "Borrador",
+      content: { type: "doc" },
+    },
+  ];
   mocks.ensure.mockResolvedValue(undefined);
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.example/");
 });
@@ -136,4 +158,31 @@ it("does not use privileged writes when the account does not own the target", as
   ).toBe(403);
   expect(mocks.service).not.toHaveBeenCalled();
   expect(mocks.links).toHaveLength(0);
+});
+it("moves only notebook membership, rejects stale revisions and foreign notebooks", async () => {
+  const doc = mocks.documents[0];
+  const book = "33333333-3333-4333-8333-333333333333";
+  const move = (notebook_id: string | null, revision: number) =>
+    post(
+      { action: "move", id: target.document_id, notebook_id, revision },
+      "documents",
+    );
+  mocks.owns = false;
+  expect((await move(book, 1)).status).toBe(403);
+  expect(doc.notebook_id).toBeNull();
+  mocks.owns = true;
+  expect((await move(book, 1)).status).toBe(200);
+  expect(doc).toMatchObject({
+    notebook_id: book,
+    revision: 2,
+    title: "Borrador",
+    content: { type: "doc" },
+  });
+  expect((await move(null, 1)).status).toBe(409);
+  expect(doc.notebook_id).toBe(book);
+  expect((await move(null, 2)).status).toBe(200);
+  expect(doc.notebook_id).toBeNull();
+  doc.owner_id = "stranger";
+  expect((await move(book, 3)).status).toBe(404);
+  expect(mocks.service).not.toHaveBeenCalled();
 });

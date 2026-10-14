@@ -1,6 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { api, ErrorMessage } from "./ui";
+import { Letter } from "./letter";
+import type { Publication } from "@/lib/model";
 type Export = { title: string; text: string; images: string[] };
 export function SocialSharing({ documentId }: { documentId: string }) {
   const [result, setResult] = useState<Export | null>(null);
@@ -8,14 +11,16 @@ export function SocialSharing({ documentId }: { documentId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [snapshot, setSnapshot] = useState<Publication | null>(null);
+  const capture = useRef<HTMLDivElement>(null);
   return (
     <section className="sharing-section">
       <h3>Instagram y otras redes</h3>
       <p className="muted">
-        Prepara tarjetas de texto para publicarlas desde tu cuenta personal.
-        Después eliges la aplicación y confirmas allí. Las tarjetas usan un
-        formato de texto adaptado a redes; las fotografías y el diseño original
-        se conservan en el enlace.
+        Prepara tarjetas de texto para publicarlas desde tu cuenta personal. Las
+        imágenes conservan el papel, la fecha, las fuentes, el formato y las
+        fotografías de la versión publicada. Después eliges la aplicación y
+        confirmas allí.
       </p>
       <button
         className="button"
@@ -27,9 +32,20 @@ export function SocialSharing({ documentId }: { documentId: string }) {
           setResult(null);
           setFiles([]);
           try {
-            const data = await api<Export>("share-images", { documentId });
+            const data = await api<{
+              title: string;
+              text: string;
+              publication: Publication;
+            }>("share-images", { documentId });
+            flushSync(() => setSnapshot(data.publication));
+            const letter =
+              capture.current?.querySelector<HTMLElement>(".letter");
+            if (!letter)
+              throw new Error("No se pudo preparar la vista de lectura.");
+            const { exportLetter } = await import("@/lib/export-letter");
+            const images = await exportLetter(letter);
             const prepared = await Promise.all(
-              data.images.map(
+              images.map(
                 async (image, i) =>
                   new File(
                     [await (await fetch(image)).blob()],
@@ -38,11 +54,12 @@ export function SocialSharing({ documentId }: { documentId: string }) {
                   ),
               ),
             );
-            setResult(data);
+            setResult({ title: data.title, text: data.text, images });
             setFiles(prepared);
           } catch (e) {
             setError((e as Error).message);
           } finally {
+            setSnapshot(null);
             setBusy(false);
           }
         }}
@@ -79,7 +96,7 @@ export function SocialSharing({ documentId }: { documentId: string }) {
               </figure>
             ))}
           </div>
-          <div className="actions">
+          <div className="social-sharing-actions">
             <button
               className="button"
               onClick={async () => {
@@ -129,6 +146,11 @@ export function SocialSharing({ documentId }: { documentId: string }) {
             subidas a una red social.
           </p>
         </>
+      )}
+      {snapshot && (
+        <div className="social-export" ref={capture} aria-hidden="true">
+          <Letter {...snapshot} />
+        </div>
       )}
     </section>
   );

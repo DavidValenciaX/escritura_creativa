@@ -27,9 +27,6 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-        env:
-          # Reproduce serverless hosts with no fonts installed.
-          FONTCONFIG_FILE: ${{ github.workspace }}/tests/fixtures/fonts.conf
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

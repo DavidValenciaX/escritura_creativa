@@ -49,11 +49,11 @@ La migración `202610130002_auth.sql` permite elegir el nombre de usuario al reg
 
 Los enlaces `/s/TOKEN` usan una vista de lectura sin navegación del estudio: el papel llena el ancho y al menos la altura de la ventana. Se mantienen la impresión, el control de accesos y la detección de revocaciones.
 
-En **Publicar y compartir**, crea un enlace y usa **Compartir enlace** para abrir el menú nativo del dispositivo o copiar la URL. Para Instagram y Facebook personales, usa **Preparar imágenes para Instagram**: exporta la versión de lectura en tarjetas JPEG verticales, paginadas sin cortar el texto, hasta diez tarjetas por exportación. Las tarjetas conservan el texto, la firma y la tinta en un diseño adaptado; las fuentes, el papel y las fotografías originales se consultan en el enlace. Puedes previsualizarlas, descargarlas, copiar el texto o compartir los archivos con una aplicación compatible. El servidor solo permite exportar las publicaciones del propio autor y no publica el borrador ni cambia su visibilidad.
+En **Publicar y compartir**, crea un enlace y usa **Compartir enlace** para abrir el menú nativo del dispositivo o copiar la URL. Para Instagram y Facebook personales, usa **Preparar imágenes para Instagram**: exporta la versión de lectura en tarjetas JPEG de 1080 × 1350, hasta diez tarjetas por exportación. Las imágenes se generan en el navegador a partir del mismo componente `Letter` que la lectura, conservando papel, fecha, fuentes de título y cuerpo, firma, formato e imágenes. La paginación evita cortar líneas de texto y fotografías. Puedes previsualizarlas, descargarlas, copiar el texto o compartir los archivos con una aplicación compatible. El servidor solo entrega la versión publicada del propio autor y no publica el borrador ni cambia su visibilidad. Actualiza la versión de lectura antes de exportar si has cambiado el diseño del borrador.
 
 La selección de destino y la publicación se confirman dentro de Instagram, Facebook o la aplicación elegida. No se solicitan credenciales de redes ni se anuncia una conexión que no existe. La Web Share API requiere HTTPS y sus destinos dependen del navegador, sistema y aplicaciones instaladas; la descarga/copia está disponible como alternativa. La API de publicación automática de Meta admite Páginas de Facebook e Instagram profesional, pero no reemplaza este flujo para cuentas personales. Revocar una URL no retira imágenes o textos ya copiados a redes.
 
-Las tarjetas cargan la fuente Lora incluida en `assets/fonts`, con su licencia SIL OFL. El archivo TTF se incluye explícitamente en la función de Vercel; no se requiere instalar fuentes en el servidor ni configurar Instagram para generar o descargar las imágenes.
+El navegador carga e incluye las fuentes y las imágenes autorizadas antes de capturar el diseño; los recursos comunitarios y las fotografías personales se resuelven por las mismas rutas protegidas de la lectura. No se requiere instalar fuentes en Vercel ni configurar Instagram. La captura usa `html-to-image`, cargado solo al exportar, y limita el tamaño a diez tarjetas antes de crear el canvas.
 
 ### Lista privada para un destinatario
 
@@ -63,6 +63,8 @@ Las tarjetas cargan la fuente Lora incluida en `assets/fonts`, con su licencia S
 4. El destinatario entra con una cuenta de ese mismo correo y abre el cuaderno desde **Compartido conmigo**. Recibirá también las futuras entradas publicadas del cuaderno, sin acceso a borradores.
 
 Para mantener el acceso entre esas dos cuentas, concede permiso solo a ese destinatario y evita crear enlaces anónimos para el cuaderno o hacer públicos sus textos. El cuaderno tiene un autor; la otra persona puede leerlo. Un espacio donde ambos aporten escritos sería una función adicional.
+
+Desde cada tarjeta del estudio también puedes pulsar **Mover**, elegir un cuaderno de destino o **Sin cuaderno**, y confirmar con **Mover escrito**. El movimiento conserva el contenido y comprueba la revisión para evitar sobrescribir cambios de otra pestaña. Si ya existe una versión publicada, cambia inmediatamente su pertenencia al cuaderno y el acceso concedido por ese cuaderno; no publica cambios del borrador. Los permisos directos del texto y su presencia voluntaria en el muro siguen sus propias reglas.
 
 Referencias: [contraseñas en Supabase](https://supabase.com/docs/guides/auth/passwords), [Google en Supabase](https://supabase.com/docs/guides/auth/social-login/auth-google) y [Web Share API](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share).
 

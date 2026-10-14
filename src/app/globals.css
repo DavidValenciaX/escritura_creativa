@@ -696,6 +696,7 @@ input[type="range"] {
 }
 .card-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px 16px;
@@ -703,6 +704,11 @@ input[type="range"] {
 }
 .card-actions .text-button {
   font-size: 11px;
+}
+.move-notebook-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .icon-button {
   background: transparent;
@@ -1841,4 +1847,32 @@ input[type="range"] {
 }
 .shared-links-list .link-result {
   margin-top: 0;
+}
+.social-sharing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+}
+.social-export {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 820px;
+  pointer-events: none;
+}
+.social-export .letter {
+  width: 820px;
+  max-width: none;
+  min-height: 1025px;
+  padding: 55px 60px;
+  margin: 0;
+  box-shadow: none;
+}
+.social-export .letter-title {
+  font-size: 44px;
+}
+.social-export .letter-content {
+  font-size: var(--letter-size);
 }

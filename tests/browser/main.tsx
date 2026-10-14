@@ -5,6 +5,16 @@ import { Settings } from "../../src/components/settings";
 import { SocialSharing } from "../../src/components/social-sharing";
 import { Reading } from "../../src/components/reading";
 import { Sharing } from "../../src/components/sharing";
+import { Letter } from "../../src/components/letter";
+import { Studio } from "../../src/components/studio";
+import "@fontsource/caveat/latin-400.css";
+import "@fontsource/dancing-script/latin-400.css";
+import "@fontsource/kalam/latin-400.css";
+import "@fontsource/patrick-hand/latin-400.css";
+import "@fontsource/courier-prime/latin-400.css";
+import "@fontsource/special-elite/latin-400.css";
+import "@fontsource/lora/latin-400.css";
+import "@fontsource/eb-garamond/latin-400.css";
 import { defaultAppearance } from "../../src/lib/model";
 import "../../src/app/globals.css";
 const fixture = new URLSearchParams(location.search).get("fixture");
@@ -31,7 +41,7 @@ const publication = {
       },
     ],
   },
-  appearance: defaultAppearance,
+  appearance: { ...defaultAppearance, paper: "lined", titleFont: "dancing" },
   published_at: "2026-10-13",
   updated_at: "2026-10-13",
   is_public: false,
@@ -61,7 +71,18 @@ createRoot(document.getElementById("root")!).render(
       siteUrl="https://example.com"
     />
   ) : fixture === "social" ? (
-    <SocialSharing documentId={profile.id} />
+    <>
+      <SocialSharing documentId={profile.id} />
+      <div
+        id="reference"
+        className="social-export"
+        style={{ left: 0, display: "none" }}
+      >
+        <Letter {...publication} />
+      </div>
+    </>
+  ) : fixture === "studio" ? (
+    <Studio />
   ) : fixture === "sharing" ? (
     <SharingFixture />
   ) : fixture === "focus" ? (
