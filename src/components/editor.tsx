@@ -41,6 +41,7 @@ import { Letter, PaperStyle, paperStyle } from "./letter";
 import { ErrorMessage, Modal } from "./ui";
 import { Sharing } from "./sharing";
 import { printLetter } from "@/lib/print";
+import { stableJson } from "@/lib/stable-json";
 const LetterImage = Image.extend({
   addAttributes() {
     return {
@@ -96,7 +97,7 @@ export function WritingEditor({
   const draftRef = useRef(draft);
   draftRef.current = draft;
   const revision = useRef(initial.revision);
-  const clean = useRef(JSON.stringify(asDraft(initial)));
+  const clean = useRef("");
   const saving = useRef<Promise<Document | null> | null>(null);
   const mounted = useRef(true);
   const key = localMode
@@ -111,6 +112,9 @@ export function WritingEditor({
   const conflictRef = useRef(false);
   conflictRef.current = conflict;
   const [recovery, setRecovery] = useState<Draft | null>(null);
+  const recoveryRef = useRef(recovery);
+  recoveryRef.current = recovery;
+  const recoveryRevision = useRef(initial.revision);
   const [remote, setRemote] = useState<Document | null>(null);
   const [uploading, setUploading] = useState(false);
   const [imageModal, setImageModal] = useState(false);
@@ -150,6 +154,18 @@ export function WritingEditor({
         content: editor.getJSON() as ContentNode,
       })),
   });
+  const fingerprint = useCallback(
+    (value: Draft) =>
+      stableJson({
+        ...value,
+        // Tiptap supplies default attributes and runtime image URLs. Compare
+        // both versions using its schema, not their original JSON encoding.
+        content: editor
+          ? editor.schema.nodeFromJSON(editorContent(value.content)).toJSON()
+          : value.content,
+      }),
+    [editor],
+  );
   const store = useCallback(
     (value: Draft, pending: boolean) => {
       try {
@@ -173,27 +189,36 @@ export function WritingEditor({
   const save = useCallback(async (): Promise<Document | null> => {
     if (saving.current) return saving.current;
     if (conflictRef.current) return null;
+    if (recoveryRef.current) {
+      setError(
+        "Elige recuperar el borrador local o usar la versión guardada antes de continuar.",
+      );
+      return null;
+    }
     saving.current = Promise.resolve().then(async () => {
       let result: Document | null = null;
       try {
         do {
           const snapshot = draftRef.current;
-          const serialized = JSON.stringify(snapshot);
-          store(snapshot, true);
+          const serialized = fingerprint(snapshot);
+          const pending = serialized !== clean.current;
+          store(snapshot, pending);
           if (localMode) {
             clean.current = serialized;
             setStatus("Guardado en este navegador");
             store(snapshot, false);
             return { ...initial, ...snapshot, revision: revision.current };
           }
+          if (!pending) {
+            setStatus("Guardado");
+            return (
+              result ?? { ...initial, ...snapshot, revision: revision.current }
+            );
+          }
           if (!navigator.onLine) {
             setStatus("Sin conexión · copia local");
             return null;
           }
-          if (serialized === clean.current)
-            return (
-              result ?? { ...initial, ...snapshot, revision: revision.current }
-            );
           setStatus("Guardando…");
           const response = await fetch("/api/documents", {
             method: "POST",
@@ -217,12 +242,9 @@ export function WritingEditor({
           revision.current = result.revision;
           clean.current = serialized;
           onSaved(result);
-          store(
-            draftRef.current,
-            serialized !== JSON.stringify(draftRef.current),
-          );
+          store(draftRef.current, serialized !== fingerprint(draftRef.current));
           if (conflictRef.current) return null;
-        } while (JSON.stringify(draftRef.current) !== clean.current);
+        } while (fingerprint(draftRef.current) !== clean.current);
         if (mounted.current) {
           setStatus("Guardado");
           setError("");
@@ -239,7 +261,7 @@ export function WritingEditor({
       }
     });
     return saving.current;
-  }, [initial, localMode, onSaved, store]);
+  }, [initial, localMode, onSaved, store, fingerprint]);
   const saveRef = useRef(save);
   saveRef.current = save;
   useEffect(() => {
@@ -248,22 +270,25 @@ export function WritingEditor({
     if (!initialized.current) {
       initialized.current = true;
       tab.current = crypto.randomUUID();
+      clean.current = fingerprint(asDraft(initial));
       try {
         const stored = JSON.parse(localStorage.getItem(key) ?? "null");
         if (stored?.draft && recoverySchema.safeParse(stored.draft).success) {
           if (localMode) {
             setDraft(stored.draft);
             draftRef.current = stored.draft;
-            editor?.commands.setContent(editorContent(stored.draft.content));
-            clean.current = JSON.stringify(stored.draft);
+            editor.commands.setContent(editorContent(stored.draft.content), {
+              emitUpdate: false,
+            });
+            clean.current = fingerprint(stored.draft);
+            setStatus("Guardado en este navegador");
           } else if (
             stored.pending &&
-            JSON.stringify(stored.draft) !== clean.current
+            fingerprint(stored.draft) !== clean.current
           ) {
+            recoveryRevision.current = stored.revision;
             setRecovery(stored.draft);
             if (stored.revision !== initial.revision) {
-              conflictRef.current = true;
-              setConflict(true);
               setStatus("La recuperación tiene una revisión anterior");
             }
           }
@@ -302,7 +327,14 @@ export function WritingEditor({
       if (event.key !== key || !event.newValue || localMode) return;
       try {
         const other = JSON.parse(event.newValue);
-        if (other.tab !== tab.current) {
+        if (
+          other.tab !== tab.current &&
+          recoverySchema.safeParse(other.draft).success &&
+          !(
+            other.revision === revision.current &&
+            fingerprint(other.draft) === clean.current
+          )
+        ) {
           conflictRef.current = true;
           setConflict(true);
           setStatus("Cambios desde otra pestaña");
@@ -310,7 +342,11 @@ export function WritingEditor({
       } catch {}
     };
     const unload = (event: BeforeUnloadEvent) => {
-      if (JSON.stringify(draftRef.current) !== clean.current && !localMode) {
+      if (
+        !recoveryRef.current &&
+        fingerprint(draftRef.current) !== clean.current &&
+        !localMode
+      ) {
         store(draftRef.current, true);
         event.preventDefault();
       }
@@ -327,11 +363,17 @@ export function WritingEditor({
       window.removeEventListener("beforeunload", unload);
     };
     // Editor initializes after hydration; recover content once it exists.
-  }, [key, localMode, editor, store]);
+  }, [key, localMode, editor, store, fingerprint]);
   useEffect(() => {
     if (!hydrated || recovery) return;
-    store(draft, true);
-    if (!conflictRef.current && JSON.stringify(draft) !== clean.current)
+    const pending = fingerprint(draft) !== clean.current;
+    store(draft, pending);
+    if (!pending) {
+      if (!conflictRef.current)
+        setStatus(localMode ? "Guardado en este navegador" : "Guardado");
+      return;
+    }
+    if (!conflictRef.current)
       setStatus(
         localMode
           ? "Guardando en este navegador…"
@@ -341,7 +383,7 @@ export function WritingEditor({
       );
     const timer = setTimeout(() => void saveRef.current(), 850);
     return () => clearTimeout(timer);
-  }, [draft, store, recovery, hydrated]);
+  }, [draft, store, recovery, hydrated, fingerprint]);
   useEffect(() => {
     if (!editor) return;
     editor.setEditable(hydrated && !actionBusy);
@@ -373,8 +415,12 @@ export function WritingEditor({
   function loadDraft(value: Draft) {
     setDraft(value);
     draftRef.current = value;
-    editor?.commands.setContent(editorContent(value.content));
+    editor?.commands.setContent(editorContent(value.content), {
+      emitUpdate: false,
+    });
+    recoveryRef.current = null;
     setRecovery(null);
+    setError("");
   }
   function downloadRecovery(value: Draft) {
     const url = URL.createObjectURL(
@@ -487,7 +533,17 @@ export function WritingEditor({
         <div className="notice screen-only">
           <span>Hay un borrador local que no llegó a guardarse.</span>
           <div className="recovery-controls">
-            <button className="button" onClick={() => loadDraft(recovery)}>
+            <button
+              className="button"
+              onClick={() => {
+                if (recoveryRevision.current !== revision.current) {
+                  conflictRef.current = true;
+                  setConflict(true);
+                  setStatus("La recuperación tiene una revisión anterior");
+                }
+                loadDraft(recovery);
+              }}
+            >
               Recuperar borrador
             </button>
             <button
@@ -499,8 +555,10 @@ export function WritingEditor({
             <button
               className="text-button"
               onClick={() => {
-                setRecovery(null);
-                store(draft, false);
+                const saved = asDraft(initial);
+                loadDraft(saved);
+                store(saved, false);
+                if (!conflictRef.current) setStatus("Guardado");
               }}
             >
               Usar versión guardada
@@ -902,7 +960,7 @@ export function WritingEditor({
               className="button"
               onClick={() => {
                 revision.current = remote.revision;
-                clean.current = JSON.stringify(asDraft(remote));
+                clean.current = fingerprint(asDraft(remote));
                 loadDraft(asDraft(remote));
                 setConflict(false);
                 conflictRef.current = false;

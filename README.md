@@ -91,6 +91,8 @@ Imágenes JPEG, PNG y WebP hasta 10 MB; el servidor verifica firma, decodifica c
 
 Contenido estructurado hasta 500 KB, máximo 10.000 nodos y profundidad 20. El renderizador usa elementos React y genera URLs de imágenes desde identificadores internos, nunca HTML crudo. Los cambios de borrador usan un número de revisión para rechazar escrituras obsoletas; tras un conflicto el autor debe elegir versión. Una recuperación local se ofrece antes de reemplazar el contenido guardado.
 
+El aviso de recuperación solo aparece cuando una copia local pendiente difiere del borrador guardado. La comparación normaliza el contenido con el esquema del editor y no depende del orden de claves JSON que devuelve PostgreSQL. Recuperar carga la copia y vuelve a intentar guardarla; usar la versión guardada descarta la recuperación. Descargar crea un archivo de respaldo y mantiene la decisión pendiente. Una copia de una revisión anterior requiere revisar ambas versiones antes de sobrescribir el servidor.
+
 ## PDF
 
 «PDF» abre la impresión del navegador. Elige «Guardar como PDF» y habilita **Gráficos de fondo** para incluir el papel. Usa A4, escala 100 % y desactiva encabezados y pies del navegador. Editor, lector e impresión usan el mismo renderizador para la vista de lectura. Las cartas largas fluyen en páginas y las imágenes conservan proporciones. No depende de Tiptap Cloud ni de un servicio PDF de pago.
