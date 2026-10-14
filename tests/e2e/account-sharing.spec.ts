@@ -123,6 +123,7 @@ test("social images have a download fallback and cancelled sharing is not an err
 });
 test("shared paper fills the viewport without studio navigation", async ({
   page,
+  isMobile,
 }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "share", {
@@ -146,9 +147,74 @@ test("shared paper fills the viewport without studio navigation", async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole("button", { name: "Compartir enlace" }).click();
+  const share = page.getByRole("button", { name: "Compartir enlace" });
+  if (!isMobile) await page.mouse.move(200, 200);
+  await expect(share).not.toBeVisible();
+  if (isMobile)
+    await page
+      .getByRole("button", { name: "Mostrar opciones de lectura" })
+      .click();
+  else await page.mouse.move(100, 8);
+  await expect(share).toBeVisible();
+  await share.click();
   await expect(page.locator("body")).toHaveAttribute(
     "data-shared-url",
     fixture("focus"),
   );
+  await page.keyboard.press("Escape");
+  await expect(share).not.toBeVisible();
+  await page
+    .getByRole("button", { name: "Mostrar opciones de lectura" })
+    .press("Enter");
+  await expect(share).toBeVisible();
+  if (isMobile)
+    await page
+      .getByRole("button", { name: "Ocultar opciones de lectura" })
+      .click();
+  else {
+    await page.keyboard.press("Escape");
+    await page.mouse.move(100, 8);
+    await page.mouse.move(200, 250);
+  }
+  await expect(share).not.toBeVisible();
+  await page
+    .locator(".letter")
+    .screenshot({
+      path: `test-results/focus-hidden-${test.info().project.name}.png`,
+    });
+});
+test("access options are separated and the selected mode is identifiable", async ({
+  page,
+}) => {
+  await page.goto(fixture("login"));
+  const group = page.getByRole("group", { name: "Opciones de acceso" });
+  const buttons = group.getByRole("button");
+  const boxes = await buttons.evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const b = node.getBoundingClientRect();
+      return { x: b.x, y: b.y, right: b.right, bottom: b.bottom };
+    }),
+  );
+  for (let i = 1; i < boxes.length; i++) {
+    if (Math.abs(boxes[i].y - boxes[i - 1].y) < 1)
+      expect(boxes[i].x - boxes[i - 1].right).toBeGreaterThanOrEqual(9);
+    else expect(boxes[i].y - boxes[i - 1].bottom).toBeGreaterThanOrEqual(9);
+  }
+  await expect(
+    group.getByRole("button", { name: "Con contraseña" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await group.getByRole("button", { name: "Crear cuenta" }).click();
+  await expect(
+    group.getByRole("button", { name: "Crear cuenta" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page
+    .locator(".login-panel")
+    .screenshot({
+      path: `test-results/signup-spaced-${test.info().project.name}.png`,
+    });
 });

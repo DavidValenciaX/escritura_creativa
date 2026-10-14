@@ -186,14 +186,55 @@ input[type="range"] {
   width: 100%;
 }
 .focus-reading .reader-header {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 20;
-  padding: 10px 18px;
+  padding: 12px 60px 12px 18px;
+  width: 100%;
   background: rgba(255, 255, 255, 0.94);
   margin: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.focus-controls {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  min-height: 18px;
+  z-index: 20;
+}
+.focus-controls[data-open="true"] .reader-header {
+  position: relative;
+  visibility: visible;
+  pointer-events: auto;
+}
+.focus-controls-toggle {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 21;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.82);
+}
+@media (hover: hover) and (pointer: fine) {
+  .focus-controls-toggle {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .focus-controls-toggle:focus-visible,
+  .focus-controls[data-open="true"] .focus-controls-toggle {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 .focus-reading .reader-heading {
   padding: 65px 24px 12px;
@@ -1734,10 +1775,34 @@ input[type="range"] {
   border: 1px solid var(--line);
 }
 .login-panel > .actions {
+  display: flex;
+  gap: 10px;
   flex-wrap: wrap;
-  margin: 16px 0;
+  margin: 24px 0;
+}
+.login-panel > .actions .text-button {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  line-height: 1.5;
+}
+.login-panel > .actions .text-button[aria-pressed="true"] {
+  color: white;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.login-panel > form {
+  display: grid;
+  gap: 20px;
+}
+.login-panel > p {
+  margin-top: 18px;
+  line-height: 1.7;
 }
 .login-panel > .button,
 .login-panel > .text-button {
+  display: flex;
+  justify-content: center;
+  width: 100%;
   margin-top: 16px;
 }

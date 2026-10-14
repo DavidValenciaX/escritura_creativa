@@ -32,7 +32,7 @@ export function Login() {
             ? "Recuperar acceso"
             : "Iniciar sesión"}
       </h1>
-      <div className="actions" aria-label="Opciones de acceso">
+      <div className="actions" role="group" aria-label="Opciones de acceso">
         <button
           className="text-button"
           aria-pressed={mode === "login"}
