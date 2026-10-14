@@ -78,6 +78,7 @@ function editorContent(content: ContentNode): ContentNode {
 }
 export function WritingEditor({
   initial,
+  initialResource,
   resources,
   localMode = false,
   onBack,
@@ -86,6 +87,7 @@ export function WritingEditor({
   notebooks,
 }: {
   initial: Document;
+  initialResource?: Resource;
   resources: Resource[];
   localMode?: boolean;
   onBack: () => void;
@@ -298,13 +300,26 @@ export function WritingEditor({
       }
       setHydrated(true);
       try {
-        const resourceKey = sessionStorage.getItem("ec:apply-resource");
-        const resource = resources.find(
-          (r) => r.id === resourceKey || r.builtin_key === resourceKey,
-        );
+        // Session selections belong only to the standalone local preview.
+        // The signed-in studio passes the choice for this document explicitly.
+        const resourceKey = localMode
+          ? sessionStorage.getItem("ec:apply-resource")
+          : null;
+        const resource =
+          initialResource ??
+          (resourceKey
+            ? resources.find(
+                (r) => r.id === resourceKey || r.builtin_key === resourceKey,
+              )
+            : undefined);
         const builtinPaper = papers.find((p) => p.key === resourceKey);
         const builtinFont = fonts.find((f) => f.key === resourceKey);
-        if (resource || builtinPaper || builtinFont) {
+        if (
+          resource?.kind === "paper" ||
+          resource?.kind === "font" ||
+          builtinPaper ||
+          builtinFont
+        ) {
           setDraft((prev) => ({
             ...prev,
             appearance: {
@@ -315,8 +330,9 @@ export function WritingEditor({
                 resource?.builtin_key ?? resource?.id ?? resourceKey!,
             },
           }));
-          sessionStorage.removeItem("ec:apply-resource");
         }
+        // Also discard stale selections left by older studio sessions.
+        sessionStorage.removeItem("ec:apply-resource");
       } catch {}
     }
     const online = () => {

@@ -61,7 +61,10 @@ export function Studio() {
   const [publications, setPublications] = useState<
     { document_id: string; is_public: boolean }[]
   >([]);
-  const [selected, setSelected] = useState<Document | null>(null);
+  const [selected, setSelected] = useState<{
+    document: Document;
+    resource?: Resource;
+  } | null>(null);
   const [book, setBook] = useState("all");
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -99,14 +102,6 @@ export function Studio() {
   useEffect(() => {
     void load();
   }, [load]);
-  useEffect(() => {
-    const resourceId = params.get("resource");
-    if (resourceId && resources.some((r) => r.id === resourceId)) {
-      try {
-        sessionStorage.setItem("ec:apply-resource", resourceId);
-      } catch {}
-    }
-  }, [params, resources]);
   async function operation(fn: () => Promise<void>) {
     setBusy(true);
     setError("");
@@ -119,7 +114,19 @@ export function Studio() {
     }
   }
   function openDocument(doc: Document) {
-    setSelected(doc);
+    const resource = resources.find(
+      (r) => r.id === params.get("resource") && r.kind !== "image",
+    );
+    // Bind the library choice to this editor only. Reloading the studio or
+    // publishing must never queue it again for another document.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("resource");
+    window.history.replaceState(
+      null,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+    setSelected({ document: doc, resource });
   }
   const saved = useCallback(
     (doc: Document) =>
@@ -129,8 +136,9 @@ export function Studio() {
   if (selected)
     return (
       <WritingEditor
-        key={selected.id}
-        initial={selected}
+        key={selected.document.id}
+        initial={selected.document}
+        initialResource={selected.resource}
         resources={resources}
         notebooks={notebooks}
         onBack={() => {

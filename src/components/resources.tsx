@@ -106,6 +106,7 @@ export function ResourceLibrary({
     }
   }
   function apply(resource: Resource) {
+    if (connected) return;
     try {
       sessionStorage.setItem(
         "ec:apply-resource",
