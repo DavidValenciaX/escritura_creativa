@@ -196,6 +196,82 @@ describe("migrations and PostgreSQL RLS", () => {
       ).rows[0].allowed,
     ).toBe(true);
   });
+  it("allows only the owner to retrieve sharing tokens and protects legacy aliases", async () => {
+    const linkId = randomUUID();
+    const token = "a".repeat(64);
+    await pg.query(
+      "insert into share_links(id,owner_id,document_id,token_hash,token) values($1,$2,$3,$4,$5)",
+      [linkId, owner, doc, "b".repeat(64), token],
+    );
+    await as("authenticated", owner, "owner@example.com", async () => {
+      expect(
+        (
+          await pg.query<{ token: string }>(
+            "select token from share_links where id=$1",
+            [linkId],
+          )
+        ).rows,
+      ).toEqual([{ token }]);
+      await expect(
+        pg.query(
+          "insert into share_links(owner_id,document_id,token_hash) values($1,$2,$3)",
+          [owner, doc, "d".repeat(64)],
+        ),
+      ).rejects.toThrow("row-level security");
+      const forged = await pg.query(
+        "update share_links set legacy_token_hash=$1 where id=$2 returning id",
+        ["c".repeat(64), linkId],
+      );
+      expect(forged.rows).toEqual([]);
+    });
+    await pg.query("update share_links set legacy_token_hash=$1 where id=$2", [
+      "c".repeat(64),
+      linkId,
+    ]);
+    for (const [id, email] of [
+      [reader, "reader@example.com"],
+      [stranger, "stranger@example.com"],
+    ]) {
+      await as("authenticated", id, email, async () => {
+        expect(
+          (
+            await pg.query(
+              "select token,legacy_token_hash from share_links where id=$1",
+              [linkId],
+            )
+          ).rows,
+        ).toEqual([]);
+        await pg.query("update share_links set revoked_at=now() where id=$1", [
+          linkId,
+        ]);
+      });
+    }
+    await as("anon", null, "", async () => {
+      expect(
+        (await pg.query("select token from share_links where id=$1", [linkId]))
+          .rows,
+      ).toEqual([]);
+    });
+    expect(
+      (
+        await pg.query<{ revoked_at: string | null }>(
+          "select revoked_at from share_links where id=$1",
+          [linkId],
+        )
+      ).rows[0].revoked_at,
+    ).toBeNull();
+    await pg.query("update share_links set revoked_at=now() where id=$1", [
+      linkId,
+    ]);
+    expect(
+      (
+        await pg.query(
+          "select * from share_links where id=$1 and revoked_at is null",
+          [linkId],
+        )
+      ).rows,
+    ).toEqual([]);
+  });
   it("does not expose drafts or tokens to recipients or strangers", async () => {
     for (const [id, email] of [
       [reader, "reader@example.com"],

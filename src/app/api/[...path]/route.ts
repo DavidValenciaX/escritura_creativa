@@ -9,7 +9,12 @@ import {
   sameOrigin,
 } from "@/lib/http";
 import { configured, service, supabase } from "@/lib/supabase/server";
-import { hashToken, readPublication, resolveLink } from "@/lib/access";
+import {
+  ensureRecoverableLinks,
+  hashToken,
+  readPublication,
+  resolveLink,
+} from "@/lib/access";
 import {
   defaultAppearance,
   draftSchema,
@@ -189,6 +194,7 @@ export async function GET(request: Request, context: Context) {
     }
     if (path[0] === "studio") {
       const { db, user } = await authenticated();
+      await ensureRecoverableLinks(user.id);
       const queries = await Promise.all([
         db
           .from("documents")
@@ -207,7 +213,7 @@ export async function GET(request: Request, context: Context) {
         db.from("grants").select("*").eq("owner_id", user.id),
         db
           .from("share_links")
-          .select("id,document_id,notebook_id,created_at,revoked_at")
+          .select("id,document_id,notebook_id,created_at,revoked_at,token")
           .eq("owner_id", user.id),
         db
           .from("resources")
@@ -222,7 +228,13 @@ export async function GET(request: Request, context: Context) {
           notebooks: queries[1].data,
           publications: queries[2].data,
           grants: queries[3].data,
-          links: queries[4].data,
+          links: queries[4].data?.map(({ token, ...link }) => ({
+            ...link,
+            url:
+              token && !link.revoked_at
+                ? `${(process.env.NEXT_PUBLIC_SITE_URL ?? url.origin).replace(/\/$/, "")}/s/${token}`
+                : null,
+          })),
           resources: queries[5].data,
         },
         { headers: { "Cache-Control": "private, no-store" } },
@@ -692,23 +704,24 @@ export async function POST(request: Request, context: Context) {
       }
       if (body.action === "link") {
         const token = randomBytes(32).toString("hex");
-        const { data, error } = await db
+        const { data, error } = await service()
           .from("share_links")
           .insert({
             ...target,
             owner_id: user.id,
             token_hash: hashToken(token),
+            token,
           })
           .select("id")
           .single();
         check(error);
         return NextResponse.json({
           id: data!.id,
-          url: `${process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin}/s/${token}`,
+          url: `${(process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin).replace(/\/$/, "")}/s/${token}`,
         });
       }
       if (body.action === "revokeLink") {
-        const { error } = await db
+        const { error } = await service()
           .from("share_links")
           .update({ revoked_at: new Date().toISOString() })
           .eq("id", z.uuid().parse(body.id))

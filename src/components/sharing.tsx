@@ -15,6 +15,7 @@ type SharedLink = {
   document_id: string | null;
   notebook_id: string | null;
   revoked_at: string | null;
+  url: string | null;
 };
 export function Sharing({
   target,
@@ -36,7 +37,6 @@ export function Sharing({
   const [published, setPublished] = useState(false);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [links, setLinks] = useState<SharedLink[]>([]);
-  const [newLinks, setNewLinks] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   async function load() {
     const response = await fetch("/api/studio");
@@ -219,94 +219,96 @@ export function Sharing({
           disabled={busy}
           onClick={() =>
             void action(async () => {
-              const data = await api<{ id: string; url: string }>("sharing", {
+              await api("sharing", {
                 action: "link",
                 ...target,
               });
-              setNewLinks((prev) => ({ ...prev, [data.id]: data.url }));
             })
           }
         >
           Crear enlace
         </button>
-        <ul className="modal-list">
-          {links.map((l, i) => (
-            <li key={l.id}>
-              <div>
-                {newLinks[l.id] ? (
-                  <div className="link-result">{newLinks[l.id]}</div>
-                ) : (
-                  <span>
-                    Enlace activo {i + 1} · {l.id.slice(0, 8)}
-                  </span>
-                )}
-              </div>
-              <div style={{ display: "flex" }}>
-                {newLinks[l.id] && (
-                  <button
-                    className="text-button"
-                    onClick={async () => {
-                      setError("");
-                      try {
-                        if (navigator.share) {
-                          await navigator.share({ title, url: newLinks[l.id] });
-                          setMessage("Enlace enviado al menú de compartir.");
-                        } else {
-                          await navigator.clipboard.writeText(newLinks[l.id]);
-                          setMessage(
-                            "Enlace copiado. Pégalo en Facebook, WhatsApp u otra aplicación.",
-                          );
+        <ul className="modal-list shared-links-list">
+          {links.map((l, i) => {
+            const url = l.url;
+            return (
+              <li key={l.id}>
+                <div>
+                  {url ? (
+                    <div className="link-result">{url}</div>
+                  ) : (
+                    <span>
+                      Enlace activo {i + 1} · {l.id.slice(0, 8)}
+                    </span>
+                  )}
+                </div>
+                <div className="shared-link-actions">
+                  {url && (
+                    <button
+                      className="text-button"
+                      onClick={async () => {
+                        setError("");
+                        try {
+                          if (navigator.share) {
+                            await navigator.share({ title, url });
+                            setMessage("Enlace enviado al menú de compartir.");
+                          } else {
+                            await navigator.clipboard.writeText(url);
+                            setMessage(
+                              "Enlace copiado. Pégalo en Facebook, WhatsApp u otra aplicación.",
+                            );
+                          }
+                        } catch (e) {
+                          if ((e as Error).name !== "AbortError")
+                            setError(
+                              "No se pudo compartir. Puedes copiar el enlace mostrado.",
+                            );
                         }
-                      } catch (e) {
-                        if ((e as Error).name !== "AbortError")
-                          setError(
-                            "No se pudo compartir. Puedes copiar el enlace mostrado.",
-                          );
-                      }
-                    }}
-                  >
-                    Compartir enlace
-                  </button>
-                )}
-                {newLinks[l.id] && (
+                      }}
+                    >
+                      Compartir enlace
+                    </button>
+                  )}
+                  {url && (
+                    <button
+                      className="icon-button"
+                      aria-label="Copiar enlace"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(url);
+                          setMessage("Enlace copiado.");
+                        } catch {
+                          setError("Copia el enlace mostrado manualmente.");
+                        }
+                      }}
+                    >
+                      <Copy size={15} />
+                    </button>
+                  )}
                   <button
                     className="icon-button"
-                    aria-label="Copiar enlace"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(newLinks[l.id]);
-                        setMessage("Enlace copiado.");
-                      } catch {
-                        setError("Copia el enlace mostrado manualmente.");
-                      }
-                    }}
+                    aria-label="Revocar enlace"
+                    disabled={busy}
+                    onClick={() =>
+                      void action(async () => {
+                        await api("sharing", {
+                          action: "revokeLink",
+                          ...target,
+                          id: l.id,
+                        });
+                      })
+                    }
                   >
-                    <Copy size={15} />
+                    <Trash2 size={15} />
                   </button>
-                )}
-                <button
-                  className="icon-button"
-                  aria-label="Revocar enlace"
-                  disabled={busy}
-                  onClick={() =>
-                    void action(async () => {
-                      await api("sharing", {
-                        action: "revokeLink",
-                        ...target,
-                        id: l.id,
-                      });
-                    })
-                  }
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </li>
-          ))}
+                </div>
+              </li>
+            );
+          })}
         </ul>
         <p className="muted">
-          Copia cada enlace al crearlo. Por seguridad no guardamos su dirección
-          completa. Para regenerarlo, revoca el anterior y crea uno nuevo.
+          Tus enlaces activos se guardan aquí para que puedas volver a copiarlos
+          o compartirlos cuando lo necesites.
         </p>
       </section>
     </Modal>

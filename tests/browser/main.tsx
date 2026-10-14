@@ -1,8 +1,10 @@
 import { createRoot } from "react-dom/client";
+import { useState } from "react";
 import { Login } from "../../src/components/login";
 import { Settings } from "../../src/components/settings";
 import { SocialSharing } from "../../src/components/social-sharing";
 import { Reading } from "../../src/components/reading";
+import { Sharing } from "../../src/components/sharing";
 import { defaultAppearance } from "../../src/lib/model";
 import "../../src/app/globals.css";
 const fixture = new URLSearchParams(location.search).get("fixture");
@@ -35,6 +37,21 @@ const publication = {
   is_public: false,
   notebook_id: null,
 };
+function SharingFixture() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>Abrir compartir</button>
+      {open && (
+        <Sharing
+          target={{ document_id: profile.id, notebook_id: null }}
+          title="Texto compartido"
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
 createRoot(document.getElementById("root")!).render(
   fixture === "settings" ? (
     <Settings
@@ -45,6 +62,8 @@ createRoot(document.getElementById("root")!).render(
     />
   ) : fixture === "social" ? (
     <SocialSharing documentId={profile.id} />
+  ) : fixture === "sharing" ? (
+    <SharingFixture />
   ) : fixture === "focus" ? (
     <main className="focus-reading">
       <Reading initial={[publication]} token="test-token" />

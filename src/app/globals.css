@@ -1774,35 +1774,71 @@ input[type="range"] {
   display: block;
   border: 1px solid var(--line);
 }
-.login-panel > .actions {
+.auth-tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  margin: 24px 0;
+}
+.auth-tabs [role="tab"] {
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 12px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.auth-tabs [aria-selected="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.auth-description {
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+.auth-methods {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin: 24px 0;
+  margin: 0 0 24px;
 }
-.login-panel > .actions .text-button {
+.auth-methods .text-button {
   padding: 10px 14px;
   border: 1px solid var(--line);
   border-radius: 5px;
   line-height: 1.5;
 }
-.login-panel > .actions .text-button[aria-pressed="true"] {
+.auth-methods .text-button[aria-pressed="true"] {
   color: white;
   background: var(--accent);
   border-color: var(--accent);
 }
-.login-panel > form {
+.auth-panel > form {
   display: grid;
   gap: 20px;
 }
-.login-panel > p {
+.auth-panel > p {
   margin-top: 18px;
   line-height: 1.7;
 }
-.login-panel > .button,
-.login-panel > .text-button {
+.auth-panel > .button,
+.auth-panel > .text-button {
   display: flex;
   justify-content: center;
   width: 100%;
   margin-top: 16px;
+}
+.shared-links-list li {
+  flex-direction: column;
+  align-items: stretch;
+}
+.shared-link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+.shared-links-list .link-result {
+  margin-top: 0;
 }

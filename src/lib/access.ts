@@ -1,22 +1,60 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { service, supabase } from "./supabase/server";
 import type { Publication, Notebook } from "./model";
 import { HttpError, check } from "./http";
 export function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
+export async function ensureRecoverableLinks(ownerId: string) {
+  const db = service();
+  const { data, error } = await db
+    .from("share_links")
+    .select("id,token_hash")
+    .eq("owner_id", ownerId)
+    .is("token", null)
+    .is("revoked_at", null);
+  check(error);
+  for (const link of data ?? []) {
+    const token = randomBytes(32).toString("hex");
+    const { error } = await db
+      .from("share_links")
+      .update({
+        token,
+        token_hash: hashToken(token),
+        legacy_token_hash: link.token_hash,
+      })
+      .eq("id", link.id)
+      .eq("owner_id", ownerId)
+      .eq("token_hash", link.token_hash)
+      .is("token", null)
+      .is("revoked_at", null);
+    check(error);
+  }
+}
 export async function resolveLink(token: string) {
   if (!/^[a-f0-9]{64}$/.test(token))
     throw new HttpError(404, "Enlace no disponible.");
   const db = service();
-  const { data: link, error } = await db
+  const hash = hashToken(token);
+  const { data: current, error } = await db
     .from("share_links")
     .select("*")
-    .eq("token_hash", hashToken(token))
+    .eq("token_hash", hash)
     .is("revoked_at", null)
     .maybeSingle();
   check(error);
+  let link = current;
+  if (!link) {
+    const { data, error } = await db
+      .from("share_links")
+      .select("*")
+      .eq("legacy_token_hash", hash)
+      .is("revoked_at", null)
+      .maybeSingle();
+    check(error);
+    link = data;
+  }
   if (!link) throw new HttpError(404, "El enlace no existe o fue revocado.");
   let notebook: Notebook | null = null;
   let query = db.from("publications").select("*");

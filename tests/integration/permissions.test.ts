@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes, createHash } from "node:crypto";
 const url = process.env.INTEGRATION_SUPABASE_URL;
 const anonKey = process.env.INTEGRATION_SUPABASE_ANON_KEY;
 const serviceKey = process.env.INTEGRATION_SUPABASE_SERVICE_ROLE_KEY;
@@ -197,6 +197,72 @@ describe.skipIf(!ready)(
         recipient_email: readerEmail,
       });
       expect(forged.error).not.toBeNull();
+    });
+    it("keeps recoverable URLs private and link mutations behind the server", async () => {
+      const token = randomBytes(32).toString("hex");
+      const hash = createHash("sha256").update(token).digest("hex");
+      const inserted = await admin
+        .from("share_links")
+        .insert({
+          owner_id: ownerId,
+          document_id: documentId,
+          token,
+          token_hash: hash,
+        })
+        .select("id")
+        .single();
+      expect(inserted.error).toBeNull();
+      const id = inserted.data!.id;
+      expect(
+        (await owner.from("share_links").select("token").eq("id", id).single())
+          .data?.token,
+      ).toBe(token);
+      for (const client of [reader, stranger, anonymous]) {
+        expect(
+          (await client.from("share_links").select("token").eq("id", id)).data,
+        ).toEqual([]);
+      }
+      const forged = await owner
+        .from("share_links")
+        .update({ legacy_token_hash: "f".repeat(64) })
+        .eq("id", id)
+        .select("id");
+      expect(forged.data).toEqual([]);
+      expect(
+        (
+          await admin
+            .from("share_links")
+            .select("legacy_token_hash")
+            .eq("id", id)
+            .single()
+        ).data?.legacy_token_hash,
+      ).toBeNull();
+      expect(
+        (
+          await owner.from("share_links").insert({
+            owner_id: ownerId,
+            document_id: documentId,
+            token_hash: "e".repeat(64),
+          })
+        ).error,
+      ).not.toBeNull();
+      expect(
+        (
+          await admin
+            .from("share_links")
+            .update({ revoked_at: new Date().toISOString() })
+            .eq("id", id)
+        ).error,
+      ).toBeNull();
+      expect(
+        (
+          await admin
+            .from("share_links")
+            .select("id")
+            .eq("token_hash", hash)
+            .is("revoked_at", null)
+        ).data,
+      ).toEqual([]);
     });
     it("revokes recipients and enforces private bucket isolation", async () => {
       const { error } = await owner
