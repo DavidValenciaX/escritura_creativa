@@ -42,8 +42,9 @@ export async function exportLetter(letter: HTMLElement) {
       throw new Error("No se pudo cargar una imagen del escrito.");
   }
   const bounds = letter.getBoundingClientRect();
-  const scale = 1080 / bounds.width;
-  const pageHeight = Math.floor(1350 / scale);
+  const scale = 2160 / bounds.width;
+  const pageHeight = 2700 / scale;
+  const margin = 55;
   const bands: TextBand[] = [];
   const walker = document.createTreeWalker(letter, NodeFilter.SHOW_TEXT);
   while (walker.nextNode()) {
@@ -63,38 +64,60 @@ export async function exportLetter(letter: HTMLElement) {
       bottom: rect.bottom - bounds.top,
     });
   }
-  const slices = cardSlices(Math.ceil(bounds.height), pageHeight, bands);
+  const contentHeight = Math.ceil(Math.max(0, ...bands.map((b) => b.bottom)));
+  const protectedBands = bands.map((b) => ({
+    top: Math.max(0, b.top - 3),
+    bottom: b.bottom + 3,
+  }));
+  const slices = cardSlices(
+    contentHeight + 3,
+    pageHeight,
+    protectedBands,
+    margin,
+  );
   const options = {
     pixelRatio: scale,
     preferredFontFormat: "woff2",
     fetchRequestInit: { credentials: "same-origin" as const },
   };
   const fontEmbedCSS = await getFontEmbedCSS(letter, options);
-  const full = await toCanvas(letter, { ...options, fontEmbedCSS });
-  // Render the same paper without content to fill the unused part of each card.
-  const paper = letter.cloneNode(false) as HTMLElement;
-  paper.style.height = `${pageHeight}px`;
-  paper.style.minHeight = `${pageHeight}px`;
-  letter.parentElement!.appendChild(paper);
-  let background: HTMLCanvasElement;
-  try {
-    background = await toCanvas(paper, { ...options, fontEmbedCSS });
-  } finally {
-    paper.remove();
+  const images: string[] = [];
+  // Capture one page at a time so high resolution does not require a huge
+  // full-document canvas, especially on mobile browsers.
+  for (const slice of slices) {
+    const page = letter.cloneNode(false) as HTMLElement;
+    Object.assign(page.style, {
+      height: `${pageHeight}px`,
+      minHeight: `${pageHeight}px`,
+      padding: "0",
+      position: "relative",
+      overflow: "hidden",
+      border: "none",
+    });
+    const clip = document.createElement("div");
+    Object.assign(clip.style, {
+      position: "absolute",
+      left: "0",
+      top: `${slice.inset}px`,
+      width: `${bounds.width}px`,
+      height: `${slice.height}px`,
+      overflow: "hidden",
+    });
+    const copy = letter.cloneNode(true) as HTMLElement;
+    Object.assign(copy.style, {
+      height: `${bounds.height}px`,
+      minHeight: `${bounds.height}px`,
+      transform: `translateY(-${slice.top}px)`,
+    });
+    clip.appendChild(copy);
+    page.appendChild(clip);
+    letter.parentElement!.appendChild(page);
+    try {
+      const canvas = await toCanvas(page, { ...options, fontEmbedCSS });
+      images.push(canvas.toDataURL("image/png"));
+    } finally {
+      page.remove();
+    }
   }
-  return slices.map((slice) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1080;
-    canvas.height = 1350;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("El navegador no permite generar imágenes.");
-    context.drawImage(background, 0, 0, 1080, 1350);
-    const y = Math.round(slice.top * scale);
-    const height = Math.min(
-      full.height - y,
-      Math.round((slice.top + slice.height) * scale) - y,
-    );
-    context.drawImage(full, 0, y, full.width, height, 0, 0, 1080, height);
-    return canvas.toDataURL("image/jpeg", 0.92);
-  });
+  return images;
 }

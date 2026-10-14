@@ -18,17 +18,13 @@ export async function POST(request: Request) {
       .object({ documentId: z.uuid() })
       .parse(await boundedJson(request));
     const result = await db
-      .from("publications")
+      .from("documents")
       .select("*")
-      .eq("document_id", documentId)
+      .eq("id", documentId)
       .eq("owner_id", user.id)
       .maybeSingle();
     check(result.error);
-    if (!result.data)
-      throw new HttpError(
-        404,
-        "Publica una versión de lectura antes de exportar las imágenes.",
-      );
+    if (!result.data) throw new HttpError(404, "Escrito no disponible.");
     const limit = await service().rpc("consume_auth_attempt", {
       attempt_key: `export:${user.id}`,
     });
@@ -46,7 +42,7 @@ export async function POST(request: Request) {
       {
         title: p.title,
         text,
-        publication: p,
+        document: p,
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );

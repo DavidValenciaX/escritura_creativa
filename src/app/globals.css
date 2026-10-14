@@ -1774,11 +1774,14 @@ input[type="range"] {
 }
 .social-cards figure {
   margin: 0;
-  flex: 0 0 216px;
+  flex: 0 0 320px;
+  max-width: 100%;
 }
 .social-cards img {
   display: block;
   border: 1px solid var(--line);
+  width: 100%;
+  height: auto;
 }
 .auth-tabs {
   display: flex;

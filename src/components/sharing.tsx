@@ -1,15 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Link as LinkIcon, Trash2, Copy, Globe, Mail } from "lucide-react";
+import { Link as LinkIcon, Trash2, Copy, Globe } from "lucide-react";
 import { api, Modal, ErrorMessage } from "./ui";
 import { SocialSharing } from "./social-sharing";
 type Target = { document_id: string | null; notebook_id: string | null };
-type Grant = {
-  id: string;
-  document_id: string | null;
-  notebook_id: string | null;
-  recipient_email: string;
-};
 type SharedLink = {
   id: string;
   document_id: string | null;
@@ -30,12 +24,10 @@ export function Sharing({
   onClose: () => void;
   onPublished?: () => void;
 }) {
-  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [isPublic, setPublic] = useState(false);
   const [published, setPublished] = useState(false);
-  const [grants, setGrants] = useState<Grant[]>([]);
   const [links, setLinks] = useState<SharedLink[]>([]);
   const [message, setMessage] = useState("");
   async function load() {
@@ -46,7 +38,6 @@ export function Sharing({
       target.document_id
         ? row.document_id === target.document_id
         : row.notebook_id === target.notebook_id;
-    setGrants(data.grants.filter(matches));
     setLinks(data.links.filter((l: SharedLink) => matches(l) && !l.revoked_at));
     const pub = data.publications.find(
       (p: { document_id: string }) => p.document_id === target.document_id,
@@ -139,72 +130,11 @@ export function Sharing({
       )}
       {!target.document_id && (
         <p className="notice">
-          Los destinatarios y enlaces verán las entradas publicadas actuales y
-          futuras de este cuaderno. Los borradores permanecen privados.
+          Los enlaces permiten leer las entradas publicadas actuales y futuras
+          de este cuaderno. Los borradores permanecen privados.
         </p>
       )}
-      {target.document_id && published && (
-        <SocialSharing documentId={target.document_id} />
-      )}
-      <section className="sharing-section">
-        <h3>
-          <Mail size={17} style={{ display: "inline", marginRight: 8 }} />
-          Personas concretas
-        </h3>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void action(async () => {
-              await api("sharing", { action: "grant", ...target, email });
-              setEmail("");
-              setMessage(
-                "Acceso concedido. La persona verá el contenido al entrar con ese correo.",
-              );
-            });
-          }}
-        >
-          <label>
-            Correo del destinatario
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="persona@correo.com"
-            />
-          </label>
-          <button className="button" disabled={busy}>
-            Conceder acceso
-          </button>
-        </form>
-        <ul className="modal-list">
-          {grants.map((g) => (
-            <li key={g.id}>
-              {g.recipient_email}
-              <button
-                aria-label={`Revocar acceso de ${g.recipient_email}`}
-                className="icon-button"
-                disabled={busy}
-                onClick={() =>
-                  void action(async () => {
-                    await api("sharing", {
-                      action: "revokeGrant",
-                      ...target,
-                      id: g.id,
-                    });
-                  })
-                }
-              >
-                <Trash2 size={15} />
-              </button>
-            </li>
-          ))}
-        </ul>
-        <p className="muted">
-          No enviamos invitaciones por correo. Comparte el enlace de la
-          aplicación con tu destinatario.
-        </p>
-      </section>
+      {target.document_id && <SocialSharing documentId={target.document_id} />}
       <section className="sharing-section">
         <h3>
           <LinkIcon size={17} style={{ display: "inline", marginRight: 8 }} />

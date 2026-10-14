@@ -1,27 +1,27 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { api, ErrorMessage } from "./ui";
 import { Letter } from "./letter";
-import type { Publication } from "@/lib/model";
+import type { Draft } from "@/lib/model";
 type Export = { title: string; text: string; images: string[] };
 export function SocialSharing({ documentId }: { documentId: string }) {
   const [result, setResult] = useState<Export | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [fullImages, setFullImages] = useState<string[]>([]);
+  useEffect(() => {
+    const urls = files.map((file) => URL.createObjectURL(file));
+    setFullImages(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [files]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [snapshot, setSnapshot] = useState<Publication | null>(null);
+  const [snapshot, setSnapshot] = useState<Draft | null>(null);
   const capture = useRef<HTMLDivElement>(null);
   return (
     <section className="sharing-section">
-      <h3>Instagram y otras redes</h3>
-      <p className="muted">
-        Prepara tarjetas de texto para publicarlas desde tu cuenta personal. Las
-        imágenes conservan el papel, la fecha, las fuentes, el formato y las
-        fotografías de la versión publicada. Después eliges la aplicación y
-        confirmas allí.
-      </p>
+      <h3>Imagen</h3>
       <button
         className="button"
         disabled={busy}
@@ -35,9 +35,9 @@ export function SocialSharing({ documentId }: { documentId: string }) {
             const data = await api<{
               title: string;
               text: string;
-              publication: Publication;
+              document: Draft;
             }>("share-images", { documentId });
-            flushSync(() => setSnapshot(data.publication));
+            flushSync(() => setSnapshot(data.document));
             const letter =
               capture.current?.querySelector<HTMLElement>(".letter");
             if (!letter)
@@ -49,8 +49,8 @@ export function SocialSharing({ documentId }: { documentId: string }) {
                 async (image, i) =>
                   new File(
                     [await (await fetch(image)).blob()],
-                    `escrito-${i + 1}.jpg`,
-                    { type: "image/jpeg" },
+                    `escrito-${i + 1}.png`,
+                    { type: "image/png" },
                   ),
               ),
             );
@@ -64,31 +64,37 @@ export function SocialSharing({ documentId }: { documentId: string }) {
           }
         }}
       >
-        {busy ? "Preparando imágenes…" : "Preparar imágenes para Instagram"}
+        {busy ? "Preparando imágenes…" : "Preparar imágenes"}
       </button>
       <ErrorMessage message={error} />
       {message && <p role="status">{message}</p>}
       {result && (
         <>
           <p>
-            {result.images.length} tarjeta
-            {result.images.length === 1 ? "" : "s"} · versión de lectura
-            publicada.
+            {result.images.length}{" "}
+            {result.images.length === 1 ? "imagen" : "imágenes"}
           </p>
           <div className="social-cards">
             {result.images.map((src, i) => (
               <figure key={i}>
-                <img
-                  src={src}
-                  alt={`Tarjeta ${i + 1} de ${result.title}`}
-                  width={216}
-                  height={270}
-                />
+                <a
+                  href={fullImages[i]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Ver imagen ${i + 1} a tamaño completo`}
+                >
+                  <img
+                    src={src}
+                    alt={`Imagen ${i + 1} de ${result.title}`}
+                    width={320}
+                    height={400}
+                  />
+                </a>
                 <figcaption>
                   <a
                     className="text-button"
                     href={src}
-                    download={`escrito-${i + 1}.jpg`}
+                    download={`escrito-${i + 1}.png`}
                   >
                     Descargar imagen {i + 1}
                   </a>
@@ -105,7 +111,7 @@ export function SocialSharing({ documentId }: { documentId: string }) {
                 try {
                   if (!navigator.share || !navigator.canShare?.({ files })) {
                     setMessage(
-                      "Descarga las imágenes y selecciónalas al crear una publicación en Instagram o Facebook.",
+                      "Descarga las imágenes y compártelas desde la aplicación que prefieras.",
                     );
                     return;
                   }
@@ -139,12 +145,6 @@ export function SocialSharing({ documentId }: { documentId: string }) {
               Copiar texto
             </button>
           </div>
-          <p className="muted">
-            Si Instagram no aparece entre las opciones, descarga las imágenes y
-            súbelas desde Instagram. Exportar no publica automáticamente ni
-            modifica los accesos. Revocar un enlace no retira las copias ya
-            subidas a una red social.
-          </p>
         </>
       )}
       {snapshot && (

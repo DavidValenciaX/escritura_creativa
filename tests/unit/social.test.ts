@@ -42,4 +42,24 @@ describe("social image export", () => {
       "demasiado alto",
     );
   });
+  it("reserves margins on every continuation and at the bottom without losing text", () => {
+    const bands = [
+      { top: 930, bottom: 980 },
+      { top: 1880, bottom: 1940 },
+      { top: 2700, bottom: 2750 },
+    ];
+    const pages = cardSlices(3000, 1025, bands, 55);
+    expect(pages.reduce((sum, p) => sum + p.height, 0)).toBe(3000);
+    for (const [i, page] of pages.entries()) {
+      expect(page.inset).toBe(i ? 55 : 0);
+      expect(page.inset + page.height).toBeLessThanOrEqual(970);
+      for (const band of bands)
+        expect(
+          !(
+            band.top < page.top + page.height &&
+            band.bottom > page.top + page.height
+          ),
+        ).toBe(true);
+    }
+  });
 });

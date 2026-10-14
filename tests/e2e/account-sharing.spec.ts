@@ -99,17 +99,15 @@ test("social images have a download fallback and cancelled sharing is not an err
       json: {
         title: "Texto",
         text: "Contenido",
-        publication: socialPublication,
+        document: socialPublication,
       },
     }),
   );
   await page.goto(fixture("social"));
-  await page
-    .getByRole("button", { name: "Preparar imágenes para Instagram" })
-    .click();
+  await page.getByRole("button", { name: "Preparar imágenes" }).click();
   await expect(
     page.getByRole("link", { name: "Descargar imagen 1" }),
-  ).toHaveAttribute("download", "escrito-1.jpg");
+  ).toHaveAttribute("download", "escrito-1.png");
   await page
     .getByRole("button", { name: "Compartir imágenes con una aplicación" })
     .click();
@@ -154,24 +152,27 @@ test("export uses the same paper, date, title font and signature as the reading 
       json: {
         title: socialPublication.title,
         text: "Contenido de lectura.\nAutor",
-        publication: socialPublication,
+        document: socialPublication,
       },
     }),
   );
   await page.goto(fixture("social"));
-  await page
-    .getByRole("button", { name: "Preparar imágenes para Instagram" })
-    .click();
+  await page.getByRole("button", { name: "Preparar imágenes" }).click();
   const preview = page.getByRole("img", {
-    name: "Tarjeta 1 de Texto compartido",
+    name: "Imagen 1 de Texto compartido",
   });
   await expect(preview).toBeVisible({ timeout: 20000 });
   const data = Buffer.from(
     (await preview.getAttribute("src"))!.split(",")[1],
     "base64",
   );
+  const metadata = await sharp(data).metadata();
+  expect(metadata).toMatchObject({ format: "png", width: 2160, height: 2700 });
+  await expect(
+    page.getByRole("link", { name: "Ver imagen 1 a tamaño completo" }),
+  ).toHaveAttribute("href", /^blob:/);
   await sharp(data).toFile(
-    `test-results/design-export-${test.info().project.name}.jpg`,
+    `test-results/design-export-${test.info().project.name}.png`,
   );
   await page.locator("#reference").evaluate((node) => {
     (node as HTMLElement).style.display = "block";
@@ -180,7 +181,7 @@ test("export uses the same paper, date, title font and signature as the reading 
     .locator("#reference .letter")
     .screenshot({ scale: "css" });
   const expected = await sharp(reference)
-    .resize(1080, 1350)
+    .resize(2160, 2700)
     .removeAlpha()
     .raw()
     .toBuffer();
@@ -302,15 +303,17 @@ test("export includes custom paper, a community font and a personal photograph",
   };
   await page.route("**/api/share-images", (route) =>
     route.fulfill({
-      json: { title: publication.title, text: "Contenido", publication },
+      json: {
+        title: publication.title,
+        text: "Contenido",
+        document: publication,
+      },
     }),
   );
   await page.goto(fixture("social"));
-  await page
-    .getByRole("button", { name: "Preparar imágenes para Instagram" })
-    .click();
+  await page.getByRole("button", { name: "Preparar imágenes" }).click();
   const preview = page.getByRole("img", {
-    name: "Tarjeta 1 de Texto compartido",
+    name: "Imagen 1 de Texto compartido",
   });
   await expect(preview).toBeVisible({ timeout: 20000 });
   const image = Buffer.from(
@@ -329,7 +332,7 @@ test("export includes custom paper, a community font and a personal photograph",
   expect(firstPixel[0]).toBeGreaterThan(210);
   expect(firstPixel[2]).toBeLessThan(210);
   await sharp(image).toFile(
-    `test-results/custom-export-${test.info().project.name}.jpg`,
+    `test-results/custom-export-${test.info().project.name}.png`,
   );
 });
 test("long exports paginate without dividing a photograph", async ({
@@ -364,13 +367,15 @@ test("long exports paginate without dividing a photograph", async ({
   };
   await page.route("**/api/share-images", (route) =>
     route.fulfill({
-      json: { title: publication.title, text: "Texto largo", publication },
+      json: {
+        title: publication.title,
+        text: "Texto largo",
+        document: publication,
+      },
     }),
   );
   await page.goto(fixture("social"));
-  await page
-    .getByRole("button", { name: "Preparar imágenes para Instagram" })
-    .click();
+  await page.getByRole("button", { name: "Preparar imágenes" }).click();
   const cards = page.locator(".social-cards img");
   await expect(cards.first()).toBeVisible({ timeout: 20000 });
   expect(await cards.count()).toBeGreaterThan(1);
@@ -383,8 +388,23 @@ test("long exports paginate without dividing a photograph", async ({
       .removeAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-    expect(info.width).toBe(1080);
-    expect(info.height).toBe(1350);
+    expect(info.width).toBe(2160);
+    expect(info.height).toBe(2700);
+    const marginTop = await sharp(buffer)
+      .extract({ left: 0, top: 0, width: 2160, height: 120 })
+      .raw()
+      .toBuffer();
+    const marginBottom = await sharp(buffer)
+      .extract({ left: 0, top: 2580, width: 2160, height: 120 })
+      .raw()
+      .toBuffer();
+    for (const pixels of [marginTop, marginBottom]) {
+      let ink = 0;
+      for (let i = 0; i < pixels.length; i += info.channels)
+        if (pixels[i] < 120 && pixels[i + 1] < 120 && pixels[i + 2] < 120)
+          ink++;
+      expect(ink).toBe(0);
+    }
     let blue = 0;
     for (let i = 0; i < data.length; i += info.channels)
       if (data[i] < 80 && data[i + 1] > 90 && data[i + 2] > 160) blue++;
@@ -560,6 +580,15 @@ test("saved sharing URLs can be copied after reopening and disappear after revoc
   });
   await page.goto(fixture("sharing"));
   await page.getByRole("button", { name: "Abrir compartir" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Imagen", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Preparar imágenes", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Personas concretas", { exact: true }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Crear enlace", exact: true }).click();
   await expect(page.getByText(url, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Cerrar", exact: true }).click();
