@@ -41,6 +41,8 @@ El formulario ofrece registro con nombre de usuario, correo y contraseña; acces
 
 Para Google, crea un OAuth Client de tipo **Web application** en Google Cloud/Google Auth Platform. Configura los orígenes de la app y la URI de retorno que muestra **Supabase → Authentication → Sign In / Providers → Google** (`https://TU_REFERENCIA.supabase.co/auth/v1/callback`). Guarda Client ID y Client Secret en ese proveedor y habilítalo. La URL de retorno de la app sigue siendo `https://TU_DOMINIO/auth/callback`; añade también `https://TU_DOMINIO/auth/callback?next=/settings` a los redirects permitidos para recuperación. No coloques el Google Client Secret en variables públicas o en el repositorio. Supabase administra el enlace de identidades; prueba el acceso con el mismo correo antes de abrir registros generales.
 
+En Google Auth Platform configura Branding, Audience y los permisos `openid`, correo y perfil. Si la audiencia externa está en Testing, añade los usuarios de prueba; antes de permitir el acceso general, publica la aplicación para esa audiencia. Para este proyecto, el origen es `https://escritura-creativa-esrt.vercel.app`, la devolución de Google a Supabase es `https://lrxymsbjnxqypvrmbuzw.supabase.co/auth/v1/callback` y el retorno permitido de Supabase a la aplicación es `https://escritura-creativa-esrt.vercel.app/auth/callback`. Confirma la URL de Supabase en el proveedor Google del dashboard si cambias de proyecto.
+
 La migración `202610130002_auth.sql` permite elegir el nombre de usuario al registrarse y añade un límite persistente de 30 solicitudes de contraseña, registro o recuperación por dirección de origen y ventana de 15 minutos. El contador solo se puede invocar desde el servidor; las contraseñas las gestiona Supabase Auth, no las tablas de perfiles.
 
 ### Redes personales y lectura por enlace
@@ -50,6 +52,17 @@ Los enlaces `/s/TOKEN` usan una vista de lectura sin navegación del estudio: el
 En **Publicar y compartir**, crea un enlace y usa **Compartir enlace** para abrir el menú nativo del dispositivo o copiar la URL. Para Instagram y Facebook personales, usa **Preparar imágenes para Instagram**: exporta la versión de lectura en tarjetas JPEG verticales, paginadas sin cortar el texto, hasta diez tarjetas por exportación. Las tarjetas conservan el texto, la firma y la tinta en un diseño adaptado; las fuentes, el papel y las fotografías originales se consultan en el enlace. Puedes previsualizarlas, descargarlas, copiar el texto o compartir los archivos con una aplicación compatible. El servidor solo permite exportar las publicaciones del propio autor y no publica el borrador ni cambia su visibilidad.
 
 La selección de destino y la publicación se confirman dentro de Instagram, Facebook o la aplicación elegida. No se solicitan credenciales de redes ni se anuncia una conexión que no existe. La Web Share API requiere HTTPS y sus destinos dependen del navegador, sistema y aplicaciones instaladas; la descarga/copia está disponible como alternativa. La API de publicación automática de Meta admite Páginas de Facebook e Instagram profesional, pero no reemplaza este flujo para cuentas personales. Revocar una URL no retira imágenes o textos ya copiados a redes.
+
+Las tarjetas cargan la fuente Lora incluida en `assets/fonts`, con su licencia SIL OFL. El archivo TTF se incluye explícitamente en la función de Vercel; no se requiere instalar fuentes en el servidor ni configurar Instagram para generar o descargar las imágenes.
+
+### Lista privada para un destinatario
+
+1. En **Mi estudio**, crea un cuaderno y selecciona ese cuaderno en el campo **Cuaderno** de cada texto que quieras incluir.
+2. Publica una **versión de lectura** de cada texto, dejando desmarcado **Mostrar también en el muro público**.
+3. Filtra el estudio por ese cuaderno y pulsa **Compartir cuaderno**. En **Personas concretas**, escribe el correo del destinatario y pulsa **Conceder acceso**.
+4. El destinatario entra con una cuenta de ese mismo correo y abre el cuaderno desde **Compartido conmigo**. Recibirá también las futuras entradas publicadas del cuaderno, sin acceso a borradores.
+
+Para mantener el acceso entre esas dos cuentas, concede permiso solo a ese destinatario y evita crear enlaces anónimos para el cuaderno o hacer públicos sus textos. El cuaderno tiene un autor; la otra persona puede leerlo. Un espacio donde ambos aporten escritos sería una función adicional.
 
 Referencias: [contraseñas en Supabase](https://supabase.com/docs/guides/auth/passwords), [Google en Supabase](https://supabase.com/docs/guides/auth/social-login/auth-google) y [Web Share API](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share).
 

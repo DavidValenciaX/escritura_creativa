@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
+import { mkdirSync, writeFileSync } from "node:fs";
 import {
   publicationText,
   wrapCardText,
@@ -42,4 +43,40 @@ describe("social image export", () => {
       "diez tarjetas",
     );
   });
+  it("renders distinct Spanish glyphs rather than identical missing-font boxes", async () => {
+    for (const [left, right] of [
+      ["A", "B"],
+      ["n", "ñ"],
+      ["a", "á"],
+      ["?", "¿"],
+    ]) {
+      const first = (await socialCards("Título", left))[0];
+      const second = (await socialCards("Título", right))[0];
+      expect(
+        first.equals(second),
+        `${left} and ${right} must have different glyphs`,
+      ).toBe(false);
+    }
+    const image = (
+      await socialCards(
+        "Prueba de exportación",
+        "¡Qué día tan especial!\n\nÁÉÍÓÚ · áéíóú · ñ Ñ · ¿cómo estás?\n\nEsta imagen debe mostrar letras legibles.\n\nDavid",
+      )
+    )[0];
+    mkdirSync("test-results", { recursive: true });
+    writeFileSync("test-results/social-spanish.jpg", image);
+  }, 30000);
+  it("fits long headings and wide letters inside the paper margins", async () => {
+    const images = await socialCards(
+      "W".repeat(200),
+      "W".repeat(42) + "\n".repeat(23),
+    );
+    for (const image of images) {
+      const borderImage = await sharp(image)
+        .extract({ left: 1020, top: 0, width: 60, height: 1350 })
+        .toBuffer();
+      const border = await sharp(borderImage).stats();
+      expect(border.channels.every((channel) => channel.min > 200)).toBe(true);
+    }
+  }, 30000);
 });

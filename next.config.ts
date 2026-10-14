@@ -4,6 +4,9 @@ const config: NextConfig = {
   devIndicators: false,
   turbopack: { root: process.cwd() },
   serverExternalPackages: [],
+  outputFileTracingIncludes: {
+    "/api/share-images": ["./assets/fonts/Lora.ttf"],
+  },
   async headers() {
     return [
       {
