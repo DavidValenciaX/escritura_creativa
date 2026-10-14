@@ -195,8 +195,14 @@ input[type="range"] {
   width: 100%;
   background: rgba(255, 255, 255, 0.94);
   margin: 0;
+  opacity: 0;
+  transform: translateY(-8px);
   visibility: hidden;
   pointer-events: none;
+  transition:
+    opacity 240ms ease,
+    transform 240ms ease,
+    visibility 0s linear 240ms;
 }
 .focus-controls {
   position: fixed;
@@ -207,9 +213,11 @@ input[type="range"] {
   z-index: 20;
 }
 .focus-controls[data-open="true"] .reader-header {
-  position: relative;
+  opacity: 1;
+  transform: translateY(0);
   visibility: visible;
   pointer-events: auto;
+  transition-delay: 0s;
 }
 .focus-controls-toggle {
   position: absolute;
@@ -224,6 +232,7 @@ input[type="range"] {
   border-radius: 50%;
   color: var(--accent);
   background: rgba(255, 255, 255, 0.82);
+  transition: opacity 240ms ease;
 }
 @media (hover: hover) and (pointer: fine) {
   .focus-controls-toggle {
@@ -234,6 +243,13 @@ input[type="range"] {
   .focus-controls[data-open="true"] .focus-controls-toggle {
     opacity: 1;
     pointer-events: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-reading .reader-header,
+  .focus-controls-toggle {
+    transition: none;
+    transform: none;
   }
 }
 .focus-reading .reader-heading {

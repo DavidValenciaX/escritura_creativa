@@ -85,16 +85,23 @@ export function Reading({
   const selected = publications.find((p) => p.document_id === selectedId);
   const controls = useRef<HTMLDivElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
+  const hideToolbarTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const toolbarId = useId();
+  function closeToolbar() {
+    clearTimeout(hideToolbarTimer.current);
+    setToolbarOpen(false);
+  }
+  useEffect(() => () => clearTimeout(hideToolbarTimer.current), []);
   useEffect(() => {
     if (!token || !toolbarOpen) return;
     const dismiss = (event: PointerEvent) => {
-      if (!controls.current?.contains(event.target as Node))
-        setToolbarOpen(false);
+      if (!controls.current?.contains(event.target as Node)) closeToolbar();
     };
     const escape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setToolbarOpen(false);
+        closeToolbar();
         toggle.current?.focus();
       }
     };
@@ -177,20 +184,27 @@ export function Reading({
             token &&
             event.pointerType === "mouse" &&
             window.matchMedia("(hover: hover) and (pointer: fine)").matches
-          )
+          ) {
+            clearTimeout(hideToolbarTimer.current);
             setToolbarOpen(true);
+          }
         }}
         onPointerLeave={(event) => {
           if (
             token &&
             event.pointerType === "mouse" &&
             !event.currentTarget.querySelector(".reader-header :focus-visible")
-          )
-            setToolbarOpen(false);
+          ) {
+            clearTimeout(hideToolbarTimer.current);
+            hideToolbarTimer.current = setTimeout(() => {
+              setToolbarOpen(false);
+            }, 320);
+          }
         }}
+        onFocus={() => clearTimeout(hideToolbarTimer.current)}
         onBlur={(event) => {
           if (token && !event.currentTarget.contains(event.relatedTarget))
-            setToolbarOpen(false);
+            closeToolbar();
         }}
       >
         {token && (
@@ -205,12 +219,19 @@ export function Reading({
             title="Opciones de lectura"
             aria-expanded={toolbarOpen}
             aria-controls={toolbarId}
-            onClick={() => setToolbarOpen((open) => !open)}
+            onClick={() => {
+              clearTimeout(hideToolbarTimer.current);
+              setToolbarOpen((open) => !open);
+            }}
           >
             {toolbarOpen ? <X size={18} /> : <Ellipsis size={18} />}
           </button>
         )}
-        <header id={toolbarId} className="reader-header">
+        <header
+          id={toolbarId}
+          className="reader-header"
+          inert={!!token && !toolbarOpen}
+        >
           <Link href={token ? "/" : "/received"} className="text-button">
             <ArrowLeft size={15} /> {token ? "Escritura Creativa" : "Volver"}
           </Link>
@@ -286,7 +307,7 @@ export function Reading({
                   aria-label={`Leer ${p.title}`}
                   aria-haspopup="dialog"
                   onClick={() => {
-                    setToolbarOpen(false);
+                    closeToolbar();
                     setSelectedId(p.document_id);
                   }}
                 >
