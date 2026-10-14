@@ -141,8 +141,8 @@ export function Sharing({
           Enlaces para compartir
         </h3>
         <p className="muted">
-          Quien tenga un enlace podrá leer sin cuenta. Puedes revocarlo cuando
-          quieras.
+          Los enlaces son cortos y permiten leer sin cuenta. Puedes revocarlos
+          cuando quieras.
         </p>
         <button
           className="button"

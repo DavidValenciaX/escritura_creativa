@@ -203,15 +203,22 @@ describe("migrations and PostgreSQL RLS", () => {
       "insert into share_links(id,owner_id,document_id,token_hash,token) values($1,$2,$3,$4,$5)",
       [linkId, owner, doc, "b".repeat(64), token],
     );
+    const shortCode = (
+      await pg.query<{ short_code: string }>(
+        "select short_code from share_links where id=$1",
+        [linkId],
+      )
+    ).rows[0].short_code;
+    expect(shortCode).toMatch(/^[A-Za-z0-9_-]{22}$/);
     await as("authenticated", owner, "owner@example.com", async () => {
       expect(
         (
-          await pg.query<{ token: string }>(
-            "select token from share_links where id=$1",
+          await pg.query<{ token: string; short_code: string }>(
+            "select token,short_code from share_links where id=$1",
             [linkId],
           )
         ).rows,
-      ).toEqual([{ token }]);
+      ).toEqual([{ token, short_code: shortCode }]);
       await expect(
         pg.query(
           "insert into share_links(owner_id,document_id,token_hash) values($1,$2,$3)",
@@ -223,6 +230,14 @@ describe("migrations and PostgreSQL RLS", () => {
         ["c".repeat(64), linkId],
       );
       expect(forged.rows).toEqual([]);
+      expect(
+        (
+          await pg.query(
+            "update share_links set short_code=$1 where id=$2 returning id",
+            ["z".repeat(22), linkId],
+          )
+        ).rows,
+      ).toEqual([]);
     });
     await pg.query("update share_links set legacy_token_hash=$1 where id=$2", [
       "c".repeat(64),
@@ -236,7 +251,7 @@ describe("migrations and PostgreSQL RLS", () => {
         expect(
           (
             await pg.query(
-              "select token,legacy_token_hash from share_links where id=$1",
+              "select token,legacy_token_hash,short_code from share_links where id=$1",
               [linkId],
             )
           ).rows,
@@ -248,8 +263,12 @@ describe("migrations and PostgreSQL RLS", () => {
     }
     await as("anon", null, "", async () => {
       expect(
-        (await pg.query("select token from share_links where id=$1", [linkId]))
-          .rows,
+        (
+          await pg.query(
+            "select token,short_code from share_links where id=$1",
+            [linkId],
+          )
+        ).rows,
       ).toEqual([]);
     });
     expect(

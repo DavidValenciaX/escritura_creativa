@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 const mocks = vi.hoisted(() => ({
   owns: true,
   service: vi.fn(),
@@ -26,8 +26,12 @@ function database(admin = false) {
       let inserted: Record<string, unknown> | undefined;
       let changes: Record<string, unknown> | undefined;
       let single = false;
+      let columns = "*";
       const query = {
-        select: () => query,
+        select: (value: string) => {
+          columns = value;
+          return query;
+        },
         order: () => query,
         eq: (key: string, value: unknown) => {
           filters.push([key, value]);
@@ -57,6 +61,10 @@ function database(admin = false) {
             mocks.links.push({
               id: "22222222-2222-4222-8222-222222222222",
               revoked_at: null,
+              short_code: Buffer.from(
+                randomUUID().replaceAll("-", ""),
+                "hex",
+              ).toString("base64url"),
               ...inserted,
             });
           const rows = (
@@ -69,8 +77,15 @@ function database(admin = false) {
             filters.every(([key, value]) => row[key] === value),
           );
           if (changes) rows.forEach((row) => Object.assign(row, changes));
+          const selected = rows.map((row) =>
+            columns === "*"
+              ? { ...row }
+              : Object.fromEntries(
+                  columns.split(",").map((key) => [key, row[key]]),
+                ),
+          );
           return Promise.resolve({
-            data: single ? rows[0] : rows,
+            data: single ? selected[0] : selected,
             error: null,
           }).then(resolve);
         },
@@ -128,9 +143,10 @@ it("creates and reloads the same URL for its owner and hides revoked URLs", asyn
   const created = await post({ action: "link", ...target });
   expect(created.status).toBe(200);
   const { id, url } = await created.json();
-  expect(url).toMatch(/^https:\/\/app.example\/s\/[a-f0-9]{64}$/);
-  const token = url.split("/").at(-1);
-  expect(mocks.links[0].token).toBe(token);
+  expect(url).toMatch(/^https:\/\/app.example\/s\/[A-Za-z0-9_-]{22}$/);
+  expect(mocks.links[0].short_code).toBe(url.split("/").at(-1));
+  const token = mocks.links[0].token as string;
+  expect(token).toMatch(/^[a-f0-9]{64}$/);
   expect(mocks.links[0].token_hash).toBe(
     createHash("sha256").update(token).digest("hex"),
   );
@@ -143,11 +159,43 @@ it("creates and reloads the same URL for its owner and hides revoked URLs", asyn
   const data = await loaded.json();
   expect(data.links[0].url).toBe(url);
   expect(data.links[0]).not.toHaveProperty("token");
+  expect(data.links[0]).not.toHaveProperty("short_code");
   expect(mocks.ensure).toHaveBeenCalledWith("owner");
   expect((await post({ action: "revokeLink", ...target, id })).status).toBe(
     200,
   );
   expect((await (await load()).json()).links[0].url).toBeNull();
+});
+it("creates short notebook URLs and uses the request origin when no site URL is configured", async () => {
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", undefined);
+  const notebook = { document_id: null, notebook_id: target.document_id };
+  const created = await post({ action: "link", ...notebook });
+  expect(created.status).toBe(200);
+  const { url } = await created.json();
+  expect(url).toBe(`https://app.example/s/${mocks.links[0].short_code}`);
+  expect(mocks.links[0]).toMatchObject(notebook);
+});
+it("lists the stable short URL for an existing long link without changing its token", async () => {
+  const token = "a".repeat(64);
+  const short_code = "Abcdefghi_0123456789-w";
+  mocks.links = [
+    {
+      ...target,
+      id: target.document_id,
+      owner_id: "owner",
+      token,
+      short_code,
+      revoked_at: null,
+    },
+  ];
+  const loaded = await GET(new Request("https://app.example/api/studio"), {
+    params: Promise.resolve({ path: ["studio"] }),
+  });
+  expect(loaded.status).toBe(200);
+  const data = await loaded.json();
+  expect(data.links[0].url).toBe(`https://app.example/s/${short_code}`);
+  expect(data.links[0]).not.toHaveProperty("token");
+  expect(mocks.links[0].token).toBe(token);
 });
 it("does not use privileged writes when the account does not own the target", async () => {
   mocks.owns = false;

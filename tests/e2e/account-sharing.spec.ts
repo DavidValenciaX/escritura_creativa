@@ -802,7 +802,7 @@ test("saved sharing URLs can be copied after reopening and disappear after revoc
 }) => {
   const id = "22222222-2222-4222-8222-222222222222";
   const documentId = "11111111-1111-4111-8111-111111111111";
-  const url = `https://example.com/s/${"a".repeat(64)}`;
+  const url = "https://example.com/s/Abcdefghi_0123456789-w";
   let links: object[] = [];
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "clipboard", {

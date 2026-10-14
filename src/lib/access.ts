@@ -33,19 +33,20 @@ export async function ensureRecoverableLinks(ownerId: string) {
   }
 }
 export async function resolveLink(token: string) {
-  if (!/^[a-f0-9]{64}$/.test(token))
+  const isShortCode = /^[A-Za-z0-9_-]{22}$/.test(token);
+  if (!isShortCode && !/^[a-f0-9]{64}$/.test(token))
     throw new HttpError(404, "Enlace no disponible.");
   const db = service();
   const hash = hashToken(token);
   const { data: current, error } = await db
     .from("share_links")
     .select("*")
-    .eq("token_hash", hash)
+    .eq(isShortCode ? "short_code" : "token_hash", isShortCode ? token : hash)
     .is("revoked_at", null)
     .maybeSingle();
   check(error);
   let link = current;
-  if (!link) {
+  if (!link && !isShortCode) {
     const { data, error } = await db
       .from("share_links")
       .select("*")

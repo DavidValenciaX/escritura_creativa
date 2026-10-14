@@ -213,7 +213,7 @@ export async function GET(request: Request, context: Context) {
         db.from("grants").select("*").eq("owner_id", user.id),
         db
           .from("share_links")
-          .select("id,document_id,notebook_id,created_at,revoked_at,token")
+          .select("id,document_id,notebook_id,created_at,revoked_at,short_code")
           .eq("owner_id", user.id),
         db
           .from("resources")
@@ -228,11 +228,11 @@ export async function GET(request: Request, context: Context) {
           notebooks: queries[1].data,
           publications: queries[2].data,
           grants: queries[3].data,
-          links: queries[4].data?.map(({ token, ...link }) => ({
+          links: queries[4].data?.map(({ short_code, ...link }) => ({
             ...link,
             url:
-              token && !link.revoked_at
-                ? `${(process.env.NEXT_PUBLIC_SITE_URL ?? url.origin).replace(/\/$/, "")}/s/${token}`
+              short_code && !link.revoked_at
+                ? `${(process.env.NEXT_PUBLIC_SITE_URL ?? url.origin).replace(/\/$/, "")}/s/${short_code}`
                 : null,
           })),
           resources: queries[5].data,
@@ -740,12 +740,12 @@ export async function POST(request: Request, context: Context) {
             token_hash: hashToken(token),
             token,
           })
-          .select("id")
+          .select("id,short_code")
           .single();
         check(error);
         return NextResponse.json({
           id: data!.id,
-          url: `${(process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin).replace(/\/$/, "")}/s/${token}`,
+          url: `${(process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin).replace(/\/$/, "")}/s/${data!.short_code}`,
         });
       }
       if (body.action === "revokeLink") {
