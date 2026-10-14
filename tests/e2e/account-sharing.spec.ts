@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import sharp from "sharp";
 import { readFileSync } from "node:fs";
+import { richLetter } from "../browser/rich-letter";
 const fixture = (name: string) => `http://127.0.0.1:3101/?fixture=${name}`;
 test("password registration validates confirmation and Google uses the OAuth flow", async ({
   page,
@@ -414,6 +415,150 @@ test("long exports paginate without dividing a photograph", async ({
     }
   }
   expect(photos).toBe(1);
+});
+
+test("rich paragraphs, marked text and lists paginate without clipped or missing lines", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await page.route("**/api/share-images", (route) =>
+    route.fulfill({
+      json: {
+        title: richLetter.title,
+        text: "Texto completo",
+        document: richLetter,
+      },
+    }),
+  );
+  await page.goto(fixture("pagination"));
+  await page
+    .getByRole("button", { name: "Preparar imágenes", exact: true })
+    .click();
+  const previews = page.locator(".social-cards img");
+  await expect(previews.first()).toBeVisible({ timeout: 30000 });
+  const images = await previews.evaluateAll((nodes) =>
+    nodes.map((node) => (node as HTMLImageElement).src),
+  );
+  expect(images.length).toBeGreaterThan(2);
+  const geometry = await page.evaluate(async () => {
+    const host = document.getElementById("reference")!;
+    host.style.display = "block";
+    const original = host.querySelector<HTMLElement>(".letter")!;
+    const html = original.innerHTML;
+    const text = original.querySelector(".letter-content")!.textContent;
+    const { paginateForTest: paginateLetter } = window as typeof window & {
+      paginateForTest: (
+        letter: HTMLElement,
+        height: number,
+        margin: number,
+      ) => HTMLElement[];
+    };
+    const pages: HTMLElement[] = paginateLetter(original, 1025, 55);
+    const fragments = pages.map((page, i) => {
+      page.dataset.testPage = String(i);
+      const bounds = page.getBoundingClientRect();
+      const rows: { top: number; bottom: number }[] = [];
+      const walker = document.createTreeWalker(page, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        if (!walker.currentNode.textContent?.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(walker.currentNode);
+        for (const rect of range.getClientRects())
+          rows.push({
+            top: rect.top - bounds.top,
+            bottom: rect.bottom - bounds.top,
+          });
+      }
+      const numbers = Array.from(
+        page.querySelectorAll<HTMLLIElement>("ol > li"),
+      )
+        .filter((li) => getComputedStyle(li).listStyleType !== "none")
+        .map((li) =>
+          li.hasAttribute("value")
+            ? li.value
+            : (li.parentElement as HTMLOListElement).start +
+              Array.from(li.parentElement!.children).indexOf(li),
+        );
+      return {
+        text: page.querySelector(".letter-content")?.textContent ?? "",
+        rows,
+        numbers,
+      };
+    });
+    return { text, fragments, sourceUnchanged: html === original.innerHTML };
+  });
+  expect(geometry.sourceUnchanged).toBe(true);
+  expect(geometry.fragments.map((p) => p.text).join("")).toBe(geometry.text);
+  expect(geometry.fragments.flatMap((p) => p.numbers)).toEqual([
+    1, 2, 3, 4, 5, 6, 7, 8,
+  ]);
+  expect(images).toHaveLength(geometry.fragments.length);
+  for (const [i, fragment] of geometry.fragments.entries()) {
+    expect(
+      fragment.rows.every((row) => row.top >= 53 && row.bottom <= 966),
+    ).toBe(true);
+    await page.locator("[data-test-page]").evaluateAll((nodes) =>
+      nodes.forEach((node) => {
+        (node as HTMLElement).style.display = "none";
+      }),
+    );
+    const element = page.locator(`[data-test-page="${i}"]`);
+    await element.evaluate((node) =>
+      Object.assign((node as HTMLElement).style, {
+        display: "block",
+        position: "fixed",
+        top: "0",
+        left: "0",
+      }),
+    );
+    const reference = await element.screenshot({
+      scale: "css",
+      path: `test-results/rich-reference-${test.info().project.name}-${i + 1}.png`,
+    });
+    const buffer = Buffer.from(images[i].split(",")[1], "base64");
+    await sharp(buffer).toFile(
+      `test-results/rich-page-${test.info().project.name}-${i + 1}.png`,
+    );
+    const expected = await sharp(reference).removeAlpha().raw().toBuffer();
+    const actual = await sharp(buffer)
+      .resize(820, 1025)
+      .removeAlpha()
+      .raw()
+      .toBuffer();
+    // Compare complete painted lines, allowing font antialiasing differences
+    // between a native screenshot and a downsampled high-resolution SVG.
+    const paintedLines = (pixels: Buffer) => {
+      const lines: { top: number; bottom: number }[] = [];
+      for (let y = 0; y < 1025; y++) {
+        let ink = 0;
+        for (let x = 40; x < 780; x++) {
+          const offset = (y * 820 + x) * 3;
+          if (
+            pixels[offset] < 120 &&
+            pixels[offset + 1] < 120 &&
+            pixels[offset + 2] < 120
+          )
+            ink++;
+        }
+        if (ink <= 5) continue;
+        const last = lines.at(-1);
+        if (last && y - last.bottom <= 7) last.bottom = y;
+        else lines.push({ top: y, bottom: y });
+      }
+      return lines;
+    };
+    const exportedLines = paintedLines(actual),
+      referenceLines = paintedLines(expected);
+    expect(exportedLines).toHaveLength(referenceLines.length);
+    for (let line = 0; line < referenceLines.length; line++) {
+      expect(
+        Math.abs(exportedLines[line].top - referenceLines[line].top),
+      ).toBeLessThanOrEqual(5);
+      expect(
+        Math.abs(exportedLines[line].bottom - referenceLines[line].bottom),
+      ).toBeLessThanOrEqual(5);
+    }
+  }
 });
 
 test("shared paper fills the viewport without studio navigation", async ({

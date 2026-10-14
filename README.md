@@ -53,7 +53,7 @@ En **Publicar y compartir → Imagen**, pulsa **Preparar imágenes** para export
 
 La selección de destino y la publicación se confirman dentro de Instagram, Facebook o la aplicación elegida. No se solicitan credenciales de redes ni se anuncia una conexión que no existe. La Web Share API requiere HTTPS y sus destinos dependen del navegador, sistema y aplicaciones instaladas; la descarga/copia está disponible como alternativa. La API de publicación automática de Meta admite Páginas de Facebook e Instagram profesional, pero no reemplaza este flujo para cuentas personales. Revocar una URL no retira imágenes o textos ya copiados a redes.
 
-El navegador carga e incluye las fuentes y las imágenes autorizadas antes de capturar el diseño; los recursos comunitarios y las fotografías personales se resuelven por las mismas rutas protegidas de la lectura. No se requiere instalar fuentes en Vercel ni configurar Instagram. La captura usa `html-to-image`, cargado solo al exportar, y limita el tamaño a diez tarjetas antes de crear el canvas.
+El navegador carga e incluye las fuentes y las imágenes autorizadas antes de capturar el diseño; los recursos comunitarios y las fotografías personales se resuelven por las mismas rutas protegidas de la lectura. La captura usa `html-to-image`, cargado solo al exportar, y limita el tamaño a diez imágenes. El paginador distribuye párrafos, entradas de listas y fotografías completos en páginas reales del DOM antes de capturarlas. Los bloques de texto que exceden una página se dividen entre palabras, conservando negritas, cursivas y enlaces; las listas numeradas mantienen su numeración. No se recorta ni se desplaza una captura del documento completo para simular páginas.
 
 ### Compartir una lista de escritos
 

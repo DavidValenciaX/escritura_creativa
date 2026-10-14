@@ -1,18 +1,21 @@
-import { cardSlices, type TextBand } from "./social-layout";
+import { paginateLetter } from "./paginate-letter";
 export async function exportLetter(letter: HTMLElement) {
   const { toCanvas, getFontEmbedCSS } = await import("html-to-image");
-  const fontElements = letter.querySelectorAll<HTMLElement>(
-    ".letter-title,.letter-content,.letter-signature",
-  );
+  // Offscreen exports also need bold/italic faces ready before measuring.
+  // Waiting only for the container's normal font can change the line wrapping.
+  const fonts = new Map<string, string>();
+  const walker = document.createTreeWalker(letter, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const text = walker.currentNode.textContent ?? "";
+    const element = walker.currentNode.parentElement;
+    if (!element || !text.trim()) continue;
+    const style = getComputedStyle(element);
+    const font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    fonts.set(font, (fonts.get(font) ?? "") + text);
+  }
   try {
     await Promise.all(
-      Array.from(fontElements, (element) => {
-        const style = getComputedStyle(element);
-        return document.fonts.load(
-          `${style.fontSize} ${style.fontFamily}`,
-          element.textContent ?? "",
-        );
-      }),
+      Array.from(fonts, ([font, text]) => document.fonts.load(font, text)),
     );
   } catch {
     throw new Error(
@@ -45,79 +48,39 @@ export async function exportLetter(letter: HTMLElement) {
   const scale = 2160 / bounds.width;
   const pageHeight = 2700 / scale;
   const margin = 55;
-  const bands: TextBand[] = [];
-  const walker = document.createTreeWalker(letter, NodeFilter.SHOW_TEXT);
-  while (walker.nextNode()) {
-    if (!walker.currentNode.textContent?.trim()) continue;
-    const range = document.createRange();
-    range.selectNodeContents(walker.currentNode);
-    for (const rect of range.getClientRects())
-      bands.push({
-        top: rect.top - bounds.top,
-        bottom: rect.bottom - bounds.top,
-      });
-  }
-  for (const image of letter.querySelectorAll("figure")) {
-    const rect = image.getBoundingClientRect();
-    bands.push({
-      top: rect.top - bounds.top,
-      bottom: rect.bottom - bounds.top,
-    });
-  }
-  const contentHeight = Math.ceil(Math.max(0, ...bands.map((b) => b.bottom)));
-  const protectedBands = bands.map((b) => ({
-    top: Math.max(0, b.top - 3),
-    bottom: b.bottom + 3,
-  }));
-  const slices = cardSlices(
-    contentHeight + 3,
-    pageHeight,
-    protectedBands,
-    margin,
-  );
   const options = {
     pixelRatio: scale,
-    preferredFontFormat: "woff2",
     fetchRequestInit: { credentials: "same-origin" as const },
+    // Preserve exact fonts and automatic flow sizes. Copying resolved heights
+    // changes margin collapse in paragraphs/list items inside the exported SVG.
+    includeStyleProperties: Array.from(
+      getComputedStyle(document.documentElement),
+    ).filter(
+      (property) => !["font-size", "height", "block-size"].includes(property),
+    ),
   };
+  // Do not set preferredFontFormat: its shared regex state can omit a font
+  // when this library embeds multiple families, changing their line widths.
   const fontEmbedCSS = await getFontEmbedCSS(letter, options);
   const images: string[] = [];
-  // Capture one page at a time so high resolution does not require a huge
-  // full-document canvas, especially on mobile browsers.
-  for (const slice of slices) {
-    const page = letter.cloneNode(false) as HTMLElement;
-    Object.assign(page.style, {
-      height: `${pageHeight}px`,
-      minHeight: `${pageHeight}px`,
-      padding: "0",
-      position: "relative",
-      overflow: "hidden",
-      border: "none",
-    });
-    const clip = document.createElement("div");
-    Object.assign(clip.style, {
-      position: "absolute",
-      left: "0",
-      top: `${slice.inset}px`,
-      width: `${bounds.width}px`,
-      height: `${slice.height}px`,
-      overflow: "hidden",
-    });
-    const copy = letter.cloneNode(true) as HTMLElement;
-    Object.assign(copy.style, {
-      height: `${bounds.height}px`,
-      minHeight: `${bounds.height}px`,
-      transform: `translateY(-${slice.top}px)`,
-    });
-    clip.appendChild(copy);
-    page.appendChild(clip);
-    letter.parentElement!.appendChild(page);
-    try {
+  const pages = paginateLetter(letter, pageHeight, margin);
+  try {
+    for (const page of pages) {
+      for (const element of [
+        page,
+        ...page.querySelectorAll<HTMLElement>("*"),
+      ]) {
+        element.style.setProperty(
+          "font-size",
+          getComputedStyle(element).fontSize,
+          "important",
+        );
+      }
       const canvas = await toCanvas(page, { ...options, fontEmbedCSS });
       images.push(canvas.toDataURL("image/png"));
-    } finally {
-      page.remove();
     }
+  } finally {
+    pages.forEach((page) => page.remove());
   }
   return images;
 }
