@@ -53,6 +53,30 @@ const publication = {
   is_public: false,
   notebook_id: null,
 };
+const notebook = {
+  id: "22222222-2222-4222-8222-222222222222",
+  title: "Alejandra",
+  description: "Un cuaderno para compartir.",
+};
+const notebookPublications = [
+  { ...publication, notebook_id: notebook.id },
+  {
+    ...publication,
+    document_id: "33333333-3333-4333-8333-333333333333",
+    notebook_id: notebook.id,
+    title: "Otra página",
+    appearance: { ...defaultAppearance, paper: "vintage" },
+    content: {
+      type: "doc",
+      content: Array.from({ length: 20 }, () => ({
+        type: "paragraph",
+        content: [
+          { type: "text", text: "Un escrito largo para leer con calma." },
+        ],
+      })),
+    },
+  },
+];
 function SharingFixture() {
   const [open, setOpen] = useState(false);
   return (
@@ -102,6 +126,14 @@ createRoot(document.getElementById("root")!).render(
     <Studio />
   ) : fixture === "sharing" ? (
     <SharingFixture />
+  ) : fixture === "notebook" || fixture === "account-notebook" ? (
+    <main className={fixture === "notebook" ? "focus-reading" : "main-content"}>
+      <Reading
+        initial={notebookPublications}
+        notebook={notebook}
+        token={fixture === "notebook" ? "test-token" : undefined}
+      />
+    </main>
   ) : fixture === "focus" ? (
     <main className="focus-reading">
       <Reading initial={[publication]} token="test-token" />

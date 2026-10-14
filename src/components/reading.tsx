@@ -3,10 +3,68 @@ import Link from "next/link";
 import { useEffect, useState, useRef, useId } from "react";
 import { Printer, ArrowLeft, BookOpen, Ellipsis, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
-import type { Publication } from "@/lib/model";
-import { Letter } from "./letter";
+import { textContent, type Publication } from "@/lib/model";
+import { Letter, PaperStyle, paperStyle } from "./letter";
 import { ReportButton } from "./ui";
 import { printLetter } from "@/lib/print";
+
+function NotebookEntry({
+  publication,
+  token,
+  offline,
+  onClose,
+}: {
+  publication: Publication;
+  token?: string;
+  offline: boolean;
+  onClose: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const element = dialog.current;
+    const previous = document.activeElement as HTMLElement | null;
+    element?.showModal();
+    return () => {
+      element?.close();
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
+  }, []);
+  return (
+    <dialog
+      ref={dialog}
+      className="notebook-reader focus-reading"
+      aria-label={publication.title}
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!event.currentTarget.querySelector(".modal")) onClose();
+      }}
+    >
+      <div className="notebook-reader-actions screen-only">
+        <button className="text-button" onClick={onClose} autoFocus>
+          <ArrowLeft size={16} /> Volver al cuaderno
+        </button>
+        <button className="text-button" onClick={() => void printLetter()}>
+          <Printer size={16} /> Imprimir / guardar PDF
+        </button>
+      </div>
+      {offline && (
+        <p className="notice notebook-reader-notice screen-only" role="status">
+          Sin conexión. Esta copia no se puede actualizar hasta que vuelvas a
+          conectarte.
+        </p>
+      )}
+      <div className="reader-list">
+        <div>
+          <Letter {...publication} token={token} />
+          <div className="screen-only">
+            <ReportButton documentId={publication.document_id} token={token} />
+          </div>
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
 export function Reading({
   initial,
   token,
@@ -23,6 +81,8 @@ export function Reading({
   const [offline, setOffline] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
   const [toolbarOpen, setToolbarOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = publications.find((p) => p.document_id === selectedId);
   const controls = useRef<HTMLDivElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const toolbarId = useId();
@@ -66,11 +126,17 @@ export function Reading({
         ) {
           setUnavailable(true);
           setPublications([]);
+          setSelectedId(null);
           return;
         }
         if (!response.ok) throw new Error("No se pudo actualizar");
         const data = await response.json();
-        setPublications(token || notebook ? data.publications : [data]);
+        const next: Publication[] =
+          token || notebook ? data.publications : [data];
+        setPublications(next);
+        setSelectedId((id) =>
+          next.some((p) => p.document_id === id) ? id : null,
+        );
         setUnavailable(false);
         setOffline(false);
       } catch {
@@ -101,7 +167,7 @@ export function Reading({
     };
   }, [token, notebook?.id, initial]);
   return (
-    <section>
+    <section className={notebook ? "shared-notebook" : undefined}>
       <div
         ref={controls}
         className={token ? "focus-controls screen-only" : "reader-controls"}
@@ -209,6 +275,67 @@ export function Reading({
           <h2>Este contenido ya no está disponible</h2>
           <p>El autor pudo retirar la publicación o revocar el acceso.</p>
         </div>
+      ) : notebook ? (
+        <>
+          <div className="document-grid screen-only">
+            {publications.map((p) => (
+              <article className="document-card" key={p.document_id}>
+                <PaperStyle appearance={p.appearance} token={token} />
+                <button
+                  className="notebook-card-button"
+                  aria-label={`Leer ${p.title}`}
+                  aria-haspopup="dialog"
+                  onClick={() => {
+                    setToolbarOpen(false);
+                    setSelectedId(p.document_id);
+                  }}
+                >
+                  <div
+                    className={`paper-thumbnail paper-${p.appearance.paper}`}
+                    style={paperStyle(p.appearance, token)}
+                  >
+                    <span className="eyebrow">
+                      {new Date(`${p.written_on}T12:00:00Z`).toLocaleDateString(
+                        "es-CO",
+                        {
+                          day: "numeric",
+                          month: "long",
+                          timeZone: "America/Bogota",
+                        },
+                      )}
+                    </span>
+                    <h3>{p.title}</h3>
+                    <p>{textContent(p.content) || "Texto vacío"}</p>
+                  </div>
+                  <span className="card-meta">
+                    Leer escrito <BookOpen size={15} />
+                  </span>
+                </button>
+              </article>
+            ))}
+            {!publications.length && (
+              <div className="empty-state">
+                <BookOpen size={32} />
+                <h2>Sin entradas publicadas</h2>
+                <p>Este cuaderno todavía no tiene entradas publicadas.</p>
+              </div>
+            )}
+          </div>
+          <div className="reader-list print-only notebook-print">
+            {publications.map((p) => (
+              <Letter key={p.document_id} {...p} token={token} />
+            ))}
+          </div>
+          {selected && (
+            <NotebookEntry
+              key={selected.document_id}
+              publication={selected}
+              token={token}
+              offline={offline}
+              onClose={() => setSelectedId(null)}
+            />
+          )}
+        </>
       ) : (
         <div className="reader-list">
           {publications.map((p) => (

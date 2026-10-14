@@ -621,6 +621,125 @@ test("shared paper fills the viewport without studio navigation", async ({
     path: `test-results/focus-hidden-${test.info().project.name}.png`,
   });
 });
+for (const mode of ["notebook", "account-notebook"]) {
+  test(`${mode} shows cards and opens only the chosen text in full screen`, async ({
+    page,
+    isMobile,
+  }) => {
+    await page.goto(fixture(mode));
+    const cards = page.locator(".document-grid .document-card");
+    await expect(cards).toHaveCount(2);
+    await expect(
+      page.getByRole("heading", { name: "Alejandra" }),
+    ).toBeVisible();
+    await expect(page.locator(".letter:visible")).toHaveCount(0);
+    await expect(page.locator(".card-actions")).toHaveCount(0);
+    await expect(cards.first().locator(".paper-lined")).toBeVisible();
+    await expect(cards.last().locator(".paper-vintage")).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(page.viewportSize()!.width);
+    await page.screenshot({
+      path: `test-results/${mode}-cards-${test.info().project.name}.png`,
+      fullPage: true,
+    });
+
+    const second = page.getByRole("button", {
+      name: "Leer Otra página",
+      exact: true,
+    });
+    if (isMobile) await second.tap();
+    else await second.click();
+    const reader = page.getByRole("dialog", {
+      name: "Otra página",
+      exact: true,
+    });
+    await expect(reader).toBeVisible();
+    await expect(page.locator(".letter:visible")).toHaveCount(1);
+    await expect(
+      reader.getByRole("heading", { name: "Otra página", exact: true }),
+    ).toBeVisible();
+    await expect(
+      reader.getByText("Un escrito largo para leer con calma.").first(),
+    ).toBeVisible();
+    const box = (await reader.boundingBox())!;
+    expect(box.x).toBe(0);
+    expect(box.y).toBe(0);
+    expect(box.width).toBe(page.viewportSize()!.width);
+    expect(box.height).toBe(page.viewportSize()!.height);
+    await expect(
+      reader.getByRole("button", { name: "Volver al cuaderno" }),
+    ).toBeFocused();
+    await reader.evaluate((element) => {
+      element.scrollTop = 500;
+    });
+    await expect(
+      reader.getByRole("button", { name: "Volver al cuaderno" }),
+    ).toBeInViewport();
+    await page.emulateMedia({ media: "print" });
+    await expect(page.locator(".letter:visible")).toHaveCount(1);
+    await expect(reader).toHaveCSS("overflow", "visible");
+    await page.emulateMedia({ media: "screen" });
+    await page.screenshot({
+      path: `test-results/${mode}-reader-${test.info().project.name}.png`,
+    });
+    await reader.getByRole("button", { name: "Volver al cuaderno" }).click();
+    await expect(reader).toHaveCount(0);
+    await expect(second).toBeFocused();
+    await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
+
+    const first = page.getByRole("button", {
+      name: "Leer Texto compartido",
+      exact: true,
+    });
+    await first.press("Enter");
+    const firstReader = page.getByRole("dialog", {
+      name: "Texto compartido",
+      exact: true,
+    });
+    await expect(firstReader).toBeVisible();
+    await expect(firstReader.locator(".letter")).toHaveCount(1);
+    await firstReader
+      .getByRole("button", { name: "Reportar", exact: true })
+      .click();
+    await expect(
+      page.getByRole("dialog", { name: "Reportar contenido" }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByRole("dialog", { name: "Reportar contenido" }),
+    ).toHaveCount(0);
+    await expect(firstReader).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(firstReader).toHaveCount(0);
+    await expect(first).toBeFocused();
+    await page.emulateMedia({ media: "print" });
+    await expect(page.locator(".letter:visible")).toHaveCount(2);
+  });
+}
+
+test("a shared notebook closes its open text when access is revoked", async ({
+  page,
+}) => {
+  await page.route("**/api/link/test-token", (route) =>
+    route.fulfill({ status: 404, json: { error: "Revocado" } }),
+  );
+  await page.goto(fixture("notebook"));
+  await page
+    .getByRole("button", { name: "Leer Otra página", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "Otra página", exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Este contenido ya no está disponible" }),
+  ).toBeVisible();
+  await expect(page.locator(".document-card")).toHaveCount(0);
+  await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
+});
+
 test("login methods are separate from registration and tabs work with the keyboard", async ({
   page,
 }) => {
