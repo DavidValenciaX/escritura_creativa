@@ -21,10 +21,23 @@ export async function Shell({
 }) {
   const user = await session();
   let admin = false;
+  let profile: {
+    display_name: string;
+    avatar_upload_id: string | null;
+    avatar_resource_id: string | null;
+  } | null = null;
   if (user) {
     const db = await supabase();
-    const { data } = await db.rpc("is_admin");
-    admin = !!data;
+    const [role, account] = await Promise.all([
+      db.rpc("is_admin"),
+      db
+        .from("profiles")
+        .select("display_name,avatar_upload_id,avatar_resource_id")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
+    admin = !!role.data;
+    profile = account.data;
   }
   const items = [
     { href: "/studio", label: "Mi estudio", short: "Estudio", icon: BookOpen },
@@ -62,9 +75,25 @@ export async function Shell({
         <Link className="account-link" href={user ? "/settings" : "/login"}>
           {user ? (
             <>
-              <span className="avatar">
-                {(user.email ?? "E")[0].toUpperCase()}
-              </span>{" "}
+              {profile?.avatar_upload_id || profile?.avatar_resource_id ? (
+                <img
+                  className="avatar account-avatar"
+                  src={
+                    profile.avatar_upload_id
+                      ? `/api/avatar/${profile.avatar_upload_id}`
+                      : `/api/resource/${profile.avatar_resource_id}`
+                  }
+                  alt=""
+                  width={30}
+                  height={30}
+                />
+              ) : (
+                <span className="avatar">
+                  {(profile?.display_name ??
+                    user.email ??
+                    "E")[0].toUpperCase()}
+                </span>
+              )}{" "}
               Mi cuenta
             </>
           ) : (

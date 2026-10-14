@@ -6,7 +6,15 @@ export async function GET(request: Request) {
   if (code) {
     const db = await supabase();
     const { error } = await db.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL("/studio", url.origin));
+    if (!error)
+      return NextResponse.redirect(
+        new URL(
+          url.searchParams.get("next") === "/settings"
+            ? "/settings"
+            : "/studio",
+          url.origin,
+        ),
+      );
   }
   return NextResponse.redirect(new URL("/auth/error", url.origin));
 }

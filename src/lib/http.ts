@@ -3,6 +3,30 @@ import { supabase } from "./supabase/server";
 import { ZodError } from "zod";
 import { HttpError } from "./errors";
 export { HttpError } from "./errors";
+export async function boundedJson(
+  request: Request,
+  limit = 8000,
+): Promise<unknown> {
+  const reader = request.body?.getReader();
+  if (!reader) throw new HttpError(400, "Faltan los datos.");
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > limit) {
+      await reader.cancel();
+      throw new HttpError(413, "Solicitud demasiado grande.");
+    }
+    chunks.push(value);
+  }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  } catch {
+    throw new HttpError(400, "Datos inválidos.");
+  }
+}
 export async function authenticated() {
   const db = await supabase();
   const {

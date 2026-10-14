@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link as LinkIcon, Trash2, Copy, Globe, Mail } from "lucide-react";
 import { api, Modal, ErrorMessage } from "./ui";
+import { SocialSharing } from "./social-sharing";
 type Target = { document_id: string | null; notebook_id: string | null };
 type Grant = {
   id: string;
@@ -142,6 +143,9 @@ export function Sharing({
           futuras de este cuaderno. Los borradores permanecen privados.
         </p>
       )}
+      {target.document_id && published && (
+        <SocialSharing documentId={target.document_id} />
+      )}
       <section className="sharing-section">
         <h3>
           <Mail size={17} style={{ display: "inline", marginRight: 8 }} />
@@ -238,6 +242,32 @@ export function Sharing({
                 )}
               </div>
               <div style={{ display: "flex" }}>
+                {newLinks[l.id] && (
+                  <button
+                    className="text-button"
+                    onClick={async () => {
+                      setError("");
+                      try {
+                        if (navigator.share) {
+                          await navigator.share({ title, url: newLinks[l.id] });
+                          setMessage("Enlace enviado al menú de compartir.");
+                        } else {
+                          await navigator.clipboard.writeText(newLinks[l.id]);
+                          setMessage(
+                            "Enlace copiado. Pégalo en Facebook, WhatsApp u otra aplicación.",
+                          );
+                        }
+                      } catch (e) {
+                        if ((e as Error).name !== "AbortError")
+                          setError(
+                            "No se pudo compartir. Puedes copiar el enlace mostrado.",
+                          );
+                      }
+                    }}
+                  >
+                    Compartir enlace
+                  </button>
+                )}
                 {newLinks[l.id] && (
                   <button
                     className="icon-button"

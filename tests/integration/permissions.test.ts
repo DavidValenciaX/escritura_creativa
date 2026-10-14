@@ -95,6 +95,38 @@ describe.skipIf(!ready)(
         if (error) throw error;
       }
     });
+    it("registers a username and supports password login without changing the account id", async () => {
+      const client = createClient(url!, anonKey!, {
+        auth: { persistSession: false },
+      });
+      const email = `ec-${prefix}-signup@example.com`;
+      const password = randomUUID() + "Aa1!";
+      const handle = `nuevo-${prefix}`;
+      const result = await client.auth.signUp({
+        email,
+        password,
+        options: { data: { public_handle: handle, name: "Prueba" } },
+      });
+      expect(result.error).toBeNull();
+      expect(result.data.user).not.toBeNull();
+      const id = result.data.user!.id;
+      users.push(id);
+      const profile = await admin
+        .from("profiles")
+        .select("id,handle")
+        .eq("id", id)
+        .single();
+      expect(profile.error).toBeNull();
+      expect(profile.data).toEqual({ id, handle });
+      const confirmed = await admin.auth.admin.updateUserById(id, {
+        email_confirm: true,
+      });
+      expect(confirmed.error).toBeNull();
+      const login = await client.auth.signInWithPassword({ email, password });
+      expect(login.error).toBeNull();
+      expect(login.data.user?.id).toBe(id);
+      await client.auth.signOut();
+    });
     it("keeps drafts inaccessible to anonymous and unrelated accounts", async () => {
       for (const client of [anonymous, reader, stranger]) {
         const { data, error } = await client
@@ -184,13 +216,11 @@ describe.skipIf(!ready)(
     });
     it("limits private avatar metadata and assignments to the owning account", async () => {
       const id = randomUUID();
-      const inserted = await admin
-        .from("avatars")
-        .insert({
-          id,
-          owner_id: users[0],
-          storage_path: `${users[0]}/${id}.webp`,
-        });
+      const inserted = await admin.from("avatars").insert({
+        id,
+        owner_id: users[0],
+        storage_path: `${users[0]}/${id}.webp`,
+      });
       expect(inserted.error).toBeNull();
       expect(
         (await anonymous.from("avatars").select("id").eq("id", id)).data,

@@ -36,7 +36,7 @@ describe("migrations and PostgreSQL RLS", () => {
   }
   beforeAll(async () => {
     pg = new PGlite();
-    await pg.exec(`create role anon;create role authenticated;create schema auth;create schema storage;
+    await pg.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create schema storage;
    create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
    create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
    create function auth.uid() returns uuid language sql stable as $$select nullif(auth.jwt()->>'sub','')::uuid$$;
@@ -151,6 +151,50 @@ describe("migrations and PostgreSQL RLS", () => {
     await pg.query("update profiles set avatar_upload_id=null where id=$1", [
       owner,
     ]);
+  });
+  it("registers an explicit public username and protects the authentication rate limiter", async () => {
+    const userId = randomUUID();
+    await pg.query(
+      "insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)",
+      [
+        userId,
+        "signup@example.com",
+        { public_handle: "nuevo-usuario", name: "Nuevo usuario" },
+      ],
+    );
+    expect(
+      (
+        await pg.query<{ handle: string }>(
+          "select handle from profiles where id=$1",
+          [userId],
+        )
+      ).rows[0].handle,
+    ).toBe("nuevo-usuario");
+    await pg.query("delete from auth.users where id=$1", [userId]);
+    await as("anon", null, "", async () => {
+      await expect(
+        pg.query("select consume_auth_attempt('forged')"),
+      ).rejects.toThrow("permission denied");
+      expect((await pg.query("select * from auth_attempts")).rows).toHaveLength(
+        0,
+      );
+    });
+    for (let i = 1; i <= 31; i++) {
+      const result = await pg.query<{ allowed: boolean }>(
+        "select consume_auth_attempt('test-client') as allowed",
+      );
+      expect(result.rows[0].allowed).toBe(i <= 30);
+    }
+    await pg.exec(
+      "update auth_attempts set started_at=now()-interval '16 minutes'",
+    );
+    expect(
+      (
+        await pg.query<{ allowed: boolean }>(
+          "select consume_auth_attempt('test-client') as allowed",
+        )
+      ).rows[0].allowed,
+    ).toBe(true);
   });
   it("does not expose drafts or tokens to recipients or strangers", async () => {
     for (const [id, email] of [

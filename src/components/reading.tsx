@@ -21,6 +21,7 @@ export function Reading({
   const [publications, setPublications] = useState(initial);
   const [unavailable, setUnavailable] = useState(false);
   const [offline, setOffline] = useState(false);
+  const [shareMessage, setShareMessage] = useState("");
   useEffect(() => {
     let active = true;
     let fetching = false;
@@ -83,6 +84,37 @@ export function Reading({
           <ArrowLeft size={15} /> {token ? "Escritura Creativa" : "Volver"}
         </Link>
         <div className="actions">
+          {token && (
+            <button
+              className="text-button"
+              onClick={async () => {
+                setShareMessage("");
+                try {
+                  const url = window.location.href;
+                  if (navigator.share)
+                    await navigator.share({
+                      title:
+                        notebook?.title ??
+                        publications[0]?.title ??
+                        "Escritura Creativa",
+                      url,
+                    });
+                  else {
+                    await navigator.clipboard.writeText(url);
+                    setShareMessage("Enlace copiado.");
+                  }
+                } catch (e) {
+                  if ((e as Error).name !== "AbortError")
+                    setShareMessage(
+                      "Puedes copiar el enlace desde la barra del navegador.",
+                    );
+                }
+              }}
+            >
+              Compartir enlace
+            </button>
+          )}
+          {shareMessage && <span role="status">{shareMessage}</span>}
           {author && (
             <Link href={`/writers/${author.handle}`}>
               Por {author.display_name}

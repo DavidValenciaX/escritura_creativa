@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
 import { api, ErrorMessage } from "./ui";
+import { PasswordSettings } from "./password-settings";
 export function Settings({
   profile,
   images,
@@ -230,6 +231,7 @@ export function Settings({
           Guardar perfil
         </button>
       </form>
+      <PasswordSettings />
       <button
         className="text-button"
         style={{ marginTop: 25 }}

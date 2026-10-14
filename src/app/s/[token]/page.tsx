@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Shell } from "@/components/shell";
 import { Reading } from "@/components/reading";
 import { configured } from "@/lib/supabase/server";
 import { resolveLink } from "@/lib/access";
@@ -39,12 +38,12 @@ export default async function Page({ params }: Props) {
     notFound();
   }
   return (
-    <Shell>
+    <main className="focus-reading">
       <Reading
         initial={data.publications}
         token={token}
         notebook={data.notebook ?? undefined}
       />
-    </Shell>
+    </main>
   );
 }
