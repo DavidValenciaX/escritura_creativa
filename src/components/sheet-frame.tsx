@@ -21,12 +21,26 @@ export function SheetFrame({
   useLayoutEffect(() => {
     const element = frame.current!;
     let lastWidth = 0;
+    let lastHeight = 0;
     let animation = 0;
     const update = () => {
       const width = element.clientWidth;
-      if (width > 0 && width !== lastWidth && canvas.current) {
+      const height = canvas.current?.offsetHeight ?? 0;
+      if (
+        width > 0 &&
+        canvas.current &&
+        (width !== lastWidth || height !== lastHeight)
+      ) {
         lastWidth = width;
-        canvas.current.style.zoom = String(Math.min(1, width / SHEET_WIDTH));
+        lastHeight = height;
+        const scale = Math.min(1, width / SHEET_WIDTH);
+        // Keep text shaping at the canonical size. CSS zoom can change glyph
+        // advances at small sizes, making Linux thumbnails wrap differently.
+        element.style.setProperty("--sheet-scale", String(scale));
+        element.style.setProperty(
+          "--sheet-height",
+          `${Math.ceil(height * scale)}px`,
+        );
       }
     };
     update();
@@ -35,6 +49,7 @@ export function SheetFrame({
       animation = requestAnimationFrame(update);
     });
     observer.observe(element);
+    observer.observe(canvas.current!);
     return () => {
       observer.disconnect();
       cancelAnimationFrame(animation);

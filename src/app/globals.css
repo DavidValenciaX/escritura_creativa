@@ -2032,11 +2032,14 @@ body:has(.notebook-reader[open]) {
   align-items: flex-start;
   width: 100%;
   min-width: 0;
+  height: var(--sheet-height, auto);
   overflow: hidden;
 }
 .sheet-canvas {
   flex: none;
   width: 820px;
+  transform: scale(var(--sheet-scale, 1));
+  transform-origin: center top;
 }
 .sheet-frame .sheet-canvas .sheet-document {
   width: 820px;
@@ -2216,11 +2219,13 @@ body:has(.notebook-reader[open]) {
     display: block;
     overflow: visible;
     min-height: 0 !important;
+    height: auto;
     background: none !important;
   }
   .sheet-canvas {
     /* A4 minus the existing 18mm page margins: 174mm / 820px. */
     zoom: 0.802 !important;
+    transform: none;
   }
   .reader-list > .letter-frame + .letter-frame,
   .reader-list > div + div {

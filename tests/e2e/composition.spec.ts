@@ -49,6 +49,32 @@ test("all presentations preserve the complete sheet composition", async ({
   await page.evaluate(() => document.fonts.ready);
   const preview = page.locator("#composition-preview .sheet-document");
   const reference = await composition(preview);
+  for (const width of [318, 240, 180, 96]) {
+    await page.locator("#composition-thumbnail").evaluate((element, value) => {
+      (element as HTMLElement).style.width = `${value + 2}px`;
+    }, width);
+    const sheet = page.locator("#composition-thumbnail .sheet-document");
+    await expect
+      .poll(() => sheet.evaluate((el) => el.getBoundingClientRect().width))
+      .toBeCloseTo(width, 0);
+    const small = await composition(sheet);
+    expect
+      .soft(small.body.height, `thumbnail at ${width}px: body.height`)
+      .toBeCloseTo(reference.body.height, 0);
+    expect
+      .soft(small.signature.y, `thumbnail at ${width}px: signature.y`)
+      .toBeCloseTo(reference.signature.y, 0);
+  }
+  await page.locator("#composition-thumbnail").evaluate((element) => {
+    (element as HTMLElement).style.width = "320px";
+  });
+  await expect
+    .poll(() =>
+      page
+        .locator("#composition-thumbnail .sheet-document")
+        .evaluate((el) => el.getBoundingClientRect().width),
+    )
+    .toBeCloseTo(318, 0);
   for (const id of ["editor", "thumbnail", "shared"]) {
     const actual = await composition(
       page.locator(`#composition-${id} .sheet-document`).first(),
