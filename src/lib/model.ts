@@ -212,6 +212,7 @@ export type Notebook = {
 };
 export type Resource = {
   id: string;
+  owner_id?: string | null;
   kind: "paper" | "font" | "image";
   name: string;
   author: string;

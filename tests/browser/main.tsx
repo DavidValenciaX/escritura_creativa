@@ -7,6 +7,8 @@ import { Reading } from "../../src/components/reading";
 import { Sharing } from "../../src/components/sharing";
 import { Letter } from "../../src/components/letter";
 import { Studio } from "../../src/components/studio";
+import { ResourceLibrary } from "../../src/components/resources";
+import { builtins } from "../../src/lib/catalog";
 import { CompositionFixture } from "./composition";
 import { richLetter } from "./rich-letter";
 import { paginateLetter } from "../../src/lib/paginate-letter";
@@ -127,6 +129,27 @@ createRoot(document.getElementById("root")!).render(
     </>
   ) : fixture === "studio" ? (
     <Studio />
+  ) : fixture === "resources" ? (
+    <ResourceLibrary
+      connected
+      userId={profile.id}
+      initial={[
+        ...builtins,
+        ...[profile.id, "other-owner"].map((owner_id, index) => ({
+          id: `33333333-3333-4333-8333-33333333333${index}`,
+          owner_id,
+          kind: "image" as const,
+          name: index === 0 ? "Mi imagen" : "Imagen ajena",
+          author: "",
+          source: "",
+          license: "CC0",
+          description: "",
+          tags: [],
+          builtin_key: null,
+          hidden: false,
+        })),
+      ]}
+    />
   ) : fixture === "sharing" ? (
     <SharingFixture />
   ) : fixture === "notebook" || fixture === "account-notebook" ? (

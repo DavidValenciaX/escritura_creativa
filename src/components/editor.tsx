@@ -960,7 +960,7 @@ export function WritingEditor({
             <label>
               Descripción de la imagen
               <input
-                required
+                placeholder="Opcional"
                 value={alt}
                 maxLength={500}
                 onChange={(e) => setAlt(e.target.value)}

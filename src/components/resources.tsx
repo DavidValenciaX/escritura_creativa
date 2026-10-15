@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { Search, Plus, ArrowUpRight } from "lucide-react";
+import { Search, Plus, ArrowUpRight, Trash2 } from "lucide-react";
 import { family, type Resource } from "@/lib/model";
 import { ErrorMessage, Modal, ReportButton } from "./ui";
 function Preview({ resource: r }: { resource: Resource }) {
@@ -46,11 +46,11 @@ function Preview({ resource: r }: { resource: Resource }) {
 export function ResourceLibrary({
   initial,
   connected,
-  user,
+  userId,
 }: {
   initial: Resource[];
   connected: boolean;
-  user: boolean;
+  userId: string | null;
 }) {
   const [resources, setResources] = useState(initial);
   const [kind, setKind] = useState("paper");
@@ -59,6 +59,8 @@ export function ResourceLibrary({
   const [detail, setDetail] = useState<Resource | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [license, setLicense] = useState("CC0");
+  const [deleteError, setDeleteError] = useState("");
   const visible = resources.filter(
     (r) =>
       (kind === "all" || r.kind === kind) &&
@@ -79,14 +81,14 @@ export function ResourceLibrary({
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      const file = form.get("file") as File;
       setResources((prev) => [
         {
           id: data.id,
+          owner_id: userId,
           kind: form.get("kind") as Resource["kind"],
           name: String(form.get("name")),
-          author: String(form.get("author")),
-          source: String(form.get("source")),
+          author: String(form.get("author") ?? "").trim(),
+          source: String(form.get("source") ?? "").trim(),
           license: String(form.get("license")),
           description: String(form.get("description") ?? ""),
           tags: String(form.get("tags") ?? "")
@@ -97,10 +99,32 @@ export function ResourceLibrary({
         },
         ...prev,
       ]);
-      void file;
       setUpload(false);
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function remove(resource: Resource) {
+    if (
+      !window.confirm(
+        `¿Eliminar «${resource.name}» de la biblioteca? Seguirá disponible en los textos que ya lo usan.`,
+      )
+    )
+      return;
+    setBusy(true);
+    setDeleteError("");
+    try {
+      const response = await fetch(`/api/resource/${resource.id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setResources((prev) => prev.filter((r) => r.id !== resource.id));
+      setDetail(null);
+    } catch (e) {
+      setDeleteError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -121,7 +145,7 @@ export function ResourceLibrary({
           <h1>Biblioteca de recursos</h1>
           <p>Papeles, tipografías e imágenes para aplicar a tus textos.</p>
         </div>
-        {user && connected ? (
+        {userId && connected ? (
           <button className="button primary" onClick={() => setUpload(true)}>
             <Plus size={17} /> Aportar un recurso
           </button>
@@ -170,13 +194,16 @@ export function ResourceLibrary({
             <button
               style={{ width: "100%", background: "transparent" }}
               aria-label={`Ver ${r.name}`}
-              onClick={() => setDetail(r)}
+              onClick={() => {
+                setDeleteError("");
+                setDetail(r);
+              }}
             >
               <Preview resource={r} />
             </button>
             <div className="resource-info">
               <h3>{r.name}</h3>
-              <p>{r.description || `Por ${r.author}`}</p>
+              <p>{r.description || (r.author ? `Por ${r.author}` : "")}</p>
               <footer>
                 <span className="badge">{r.license}</span>
                 {r.kind !== "image" ? (
@@ -190,7 +217,13 @@ export function ResourceLibrary({
                     Usar en un texto <ArrowUpRight size={13} />
                   </Link>
                 ) : (
-                  <button className="text-button" onClick={() => setDetail(r)}>
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      setDeleteError("");
+                      setDetail(r);
+                    }}
+                  >
                     Ver recurso <ArrowUpRight size={13} />
                   </button>
                 )}
@@ -214,28 +247,35 @@ export function ResourceLibrary({
         )}
       </div>
       {detail && (
-        <Modal title={detail.name} onClose={() => setDetail(null)}>
+        <Modal
+          title={detail.name}
+          onClose={() => {
+            if (!busy) setDetail(null);
+          }}
+        >
           <Preview resource={detail} />
           <p className="muted" style={{ marginTop: 20 }}>
             {detail.description}
           </p>
-          <p>Autoría: {detail.author}</p>
+          {detail.author && <p>Autoría: {detail.author}</p>}
           <p>Licencia: {detail.license}</p>
-          <p>
-            Procedencia:{" "}
-            {/^https?:\/\//.test(detail.source) ? (
-              <a
-                href={detail.source}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-button"
-              >
-                Consultar fuente <ArrowUpRight size={13} />
-              </a>
-            ) : (
-              detail.source
-            )}
-          </p>
+          {detail.source && (
+            <p>
+              Procedencia:{" "}
+              {/^https?:\/\//.test(detail.source) ? (
+                <a
+                  href={detail.source}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-button"
+                >
+                  Consultar fuente <ArrowUpRight size={13} />
+                </a>
+              ) : (
+                detail.source
+              )}
+            </p>
+          )}
           {detail.kind !== "image" && (
             <Link
               className="button primary"
@@ -252,6 +292,22 @@ export function ResourceLibrary({
               <ReportButton resourceId={detail.id} />
             </div>
           )}
+          {connected &&
+            userId &&
+            detail.owner_id === userId &&
+            !detail.builtin_key && (
+              <div style={{ marginTop: 15 }}>
+                <ErrorMessage message={deleteError} />
+                <button
+                  className="button"
+                  disabled={busy}
+                  onClick={() => remove(detail)}
+                >
+                  <Trash2 size={17} />{" "}
+                  {busy ? "Eliminando…" : "Eliminar recurso"}
+                </button>
+              </div>
+            )}
         </Modal>
       )}
       {upload && (
@@ -299,11 +355,25 @@ export function ResourceLibrary({
             <div className="form-grid">
               <label>
                 Autoría
-                <input name="author" required maxLength={160} />
+                <input
+                  name="author"
+                  required={license !== "CC0"}
+                  maxLength={160}
+                  placeholder={
+                    license === "CC0"
+                      ? "Opcional para dominio público"
+                      : undefined
+                  }
+                />
               </label>
               <label>
                 Licencia
-                <select name="license" required>
+                <select
+                  name="license"
+                  required
+                  value={license}
+                  onChange={(e) => setLicense(e.target.value)}
+                >
                   <option value="CC0">CC0 · dominio público</option>
                   <option value="CC-BY-4.0">CC BY 4.0 · con atribución</option>
                   <option value="OFL-1.1">OFL 1.1 · tipografías</option>
@@ -315,14 +385,22 @@ export function ResourceLibrary({
               Procedencia
               <input
                 name="source"
-                required
+                required={license !== "CC0"}
                 maxLength={500}
-                placeholder="URL original o «Creación propia»"
+                placeholder={
+                  license === "CC0"
+                    ? "Opcional: URL original o «Creación propia»"
+                    : "URL original o «Creación propia»"
+                }
               />
             </label>
             <label>
               Descripción
-              <textarea name="description" maxLength={1000} />
+              <textarea
+                name="description"
+                maxLength={1000}
+                placeholder="Opcional"
+              />
             </label>
             <label>
               Etiquetas separadas por comas

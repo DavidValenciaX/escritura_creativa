@@ -26,7 +26,7 @@ export default async function Page() {
       <ResourceLibrary
         initial={resources}
         connected={connected}
-        user={!!(await session())}
+        userId={(await session())?.id ?? null}
       />
     </Shell>
   );

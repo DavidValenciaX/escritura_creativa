@@ -389,16 +389,30 @@ export async function POST(request: Request, context: Context) {
         resourceValues = z
           .object({
             name: z.string().min(1).max(120),
-            author: z.string().min(1).max(160),
-            source: z.string().min(1).max(500),
+            author: z.string().trim().max(160),
+            source: z.string().trim().max(500),
             license: z.string().min(1).max(120),
             description: z.string().max(1000),
             tags: z.array(z.string().max(30)).max(8),
           })
+          .superRefine((value, ctx) => {
+            if (value.license === "CC0") return;
+            for (const field of ["author", "source"] as const) {
+              if (!value[field])
+                ctx.addIssue({
+                  code: "custom",
+                  path: [field],
+                  message:
+                    field === "author"
+                      ? "Indica la autoría para esta licencia."
+                      : "Indica la procedencia para esta licencia.",
+                });
+            }
+          })
           .parse({
             name: form.get("name"),
-            author: form.get("author"),
-            source: form.get("source"),
+            author: form.get("author") ?? "",
+            source: form.get("source") ?? "",
             license: form.get("license"),
             description: form.get("description") ?? "",
             tags: String(form.get("tags") ?? "")
@@ -881,6 +895,37 @@ export async function POST(request: Request, context: Context) {
       return NextResponse.json({ ok: true });
     }
     throw new HttpError(400, "Acción no disponible.");
+  } catch (error) {
+    return failure(error);
+  }
+}
+export async function DELETE(request: Request, context: Context) {
+  try {
+    sameOrigin(request);
+    if (!configured())
+      throw new HttpError(503, "Supabase aún no está configurado.");
+    const { path } = await context.params;
+    const { user } = await authenticated();
+    if (path.length !== 2 || path[0] !== "resource")
+      throw new HttpError(404, "Ruta no disponible.");
+    const id = z.uuid().parse(path[1]);
+    // Keep existing document/publication references working when a contribution
+    // is removed from the catalogue. Community writes remain server-only.
+    const { data, error } = await service()
+      .from("resources")
+      .update({ hidden: true })
+      .eq("id", id)
+      .eq("owner_id", user.id)
+      .is("builtin_key", null)
+      .select("id")
+      .maybeSingle();
+    check(error);
+    if (!data)
+      throw new HttpError(
+        404,
+        "Recurso no disponible o no aportado por tu cuenta.",
+      );
+    return NextResponse.json({ ok: true });
   } catch (error) {
     return failure(error);
   }

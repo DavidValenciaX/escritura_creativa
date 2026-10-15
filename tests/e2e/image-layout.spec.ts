@@ -109,6 +109,36 @@ async function drag(page: Page, target: Locator, dx: number, dy: number) {
 }
 
 for (const source of ["upload", "community"] as const) {
+  test(`${source} image can be inserted and saved without a description`, async ({
+    page,
+  }) => {
+    const api = await setup(page);
+    await open(page);
+    await page
+      .getByRole("button", { name: "Añadir imagen", exact: true })
+      .click();
+    if (source === "community")
+      await page
+        .getByLabel("O una imagen de la comunidad")
+        .selectOption(resourceId);
+    else
+      await page.getByLabel("Imagen personal", { exact: true }).setInputFiles({
+        name: "foto.png",
+        mimeType: "image/png",
+        buffer: api.photo,
+      });
+    await page
+      .getByRole("button", { name: "Insertar imagen", exact: true })
+      .click();
+    await expect(
+      page.getByRole("dialog", { name: "Una imagen para tu texto" }),
+    ).toHaveCount(0);
+    await expect(page.locator(".editable-image")).toBeVisible();
+    await expect
+      .poll(() => images(api.saved().content)[0]?.attrs?.alt)
+      .toBe("");
+    expect(draftSchema.safeParse(api.saved()).success).toBe(true);
+  });
   test(`${source} image moves, scales, rotates, undoes and persists into preview`, async ({
     page,
   }) => {
