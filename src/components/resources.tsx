@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Search, Plus, ArrowUpRight, Trash2 } from "lucide-react";
 import { family, type Resource } from "@/lib/model";
+import { appDialog } from "@/lib/dialog";
 import { ErrorMessage, Modal, ReportButton } from "./ui";
 function Preview({ resource: r }: { resource: Resource }) {
   return (
@@ -107,12 +108,15 @@ export function ResourceLibrary({
     }
   }
   async function remove(resource: Resource) {
-    if (
-      !window.confirm(
-        `¿Eliminar «${resource.name}» de la biblioteca? Seguirá disponible en los textos que ya lo usan.`,
-      )
-    )
-      return;
+    const result = await appDialog.fire({
+      titleText: "¿Eliminar este recurso?",
+      text: `«${resource.name}» se eliminará de la biblioteca. Seguirá disponible en los textos que ya lo usan.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      focusCancel: true,
+    });
+    if (!result.isConfirmed) return;
     setBusy(true);
     setDeleteError("");
     try {

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "sweetalert2/dist/sweetalert2.min.css";
 @theme {
   --color-ink: #343831;
   --color-paper: #f8f7f2;
@@ -1180,6 +1181,80 @@ input[type="range"] {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 18px;
+}
+.swal2-container.app-dialog-container {
+  z-index: 1100;
+  padding: 20px;
+}
+.swal2-popup.app-dialog {
+  width: 480px;
+  max-width: 100%;
+  padding: 28px 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 20px 70px #0002;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+}
+.app-dialog .app-dialog-title {
+  padding: 0;
+  font-family: "Lora", Georgia, serif;
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -0.5px;
+}
+.app-dialog .swal2-icon {
+  margin: 0 auto 22px;
+}
+.app-dialog .app-dialog-text {
+  margin: 16px 0 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.app-dialog .app-dialog-actions {
+  gap: 12px;
+  margin: 24px 0 0;
+}
+.app-dialog .button {
+  min-height: 44px;
+  margin: 0;
+}
+.app-dialog .button:focus-visible,
+.app-dialog .app-dialog-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+.app-dialog .swal2-input-label {
+  margin: 20px 0 8px;
+  font-size: 12px;
+}
+.app-dialog .app-dialog-input {
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fffefb;
+  color: var(--ink);
+  font-size: 14px;
+  box-shadow: none;
+}
+.app-dialog .app-dialog-validation {
+  margin: 16px 0 0;
+  padding: 12px;
+  border-radius: 5px;
+  background: var(--warm);
+  color: var(--ink);
+  font-size: 12px;
+}
+.app-dialog .app-dialog-validation::before {
+  background: var(--accent);
 }
 .modal-backdrop {
   position: fixed;

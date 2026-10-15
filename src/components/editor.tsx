@@ -45,6 +45,7 @@ import { ErrorMessage, Modal } from "./ui";
 import { Sharing } from "./sharing";
 import { printLetter } from "@/lib/print";
 import { stableJson } from "@/lib/stable-json";
+import { appDialog } from "@/lib/dialog";
 const asDraft = (doc: Document): Draft => ({
   title: doc.title,
   written_on: doc.written_on,
@@ -697,14 +698,36 @@ export function WritingEditor({
                 className="icon-button"
                 title="Añadir enlace"
                 aria-label="Añadir enlace"
-                onClick={() => {
-                  const href = window.prompt("Enlace (https://…)");
-                  if (href && /^https?:\/\//i.test(href))
-                    editor?.chain().focus().setLink({ href }).run();
-                  else if (href)
-                    setError("El enlace debe comenzar con https:// o http://.");
-                  else if (href === "")
-                    editor?.chain().focus().unsetLink().run();
+                onClick={async () => {
+                  if (!editor) return;
+                  const { from, to } = editor.state.selection;
+                  const result = await appDialog.fire<string>({
+                    titleText: "Añadir enlace",
+                    text: "Pega una dirección web. Deja el campo vacío para quitar el enlace.",
+                    input: "text",
+                    inputLabel: "Dirección del enlace",
+                    inputPlaceholder: "https://…",
+                    inputValue: editor.getAttributes("link").href ?? "",
+                    inputAttributes: {
+                      autocapitalize: "off",
+                      autocomplete: "url",
+                      inputmode: "url",
+                      spellcheck: "false",
+                    },
+                    showCancelButton: true,
+                    confirmButtonText: "Guardar enlace",
+                    inputValidator: (value) => {
+                      if (value && !/^https?:\/\//i.test(value))
+                        return "El enlace debe comenzar con https:// o http://.";
+                    },
+                  });
+                  if (!result.isConfirmed || editor.isDestroyed) return;
+                  const chain = editor
+                    .chain()
+                    .focus()
+                    .setTextSelection({ from, to });
+                  if (result.value) chain.setLink({ href: result.value }).run();
+                  else chain.unsetLink().run();
                 }}
               >
                 <LinkIcon size={16} />

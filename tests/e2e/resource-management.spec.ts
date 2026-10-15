@@ -65,8 +65,24 @@ test("CC0 can be published without optional metadata and removed immediately by 
     deleted = true;
     await route.fulfill({ json: { ok: true } });
   });
-  page.once("dialog", (dialog) => dialog.accept());
   await detail.getByRole("button", { name: "Eliminar recurso" }).click();
+  const confirmation = page.getByRole("dialog", {
+    name: "¿Eliminar este recurso?",
+  });
+  await expect(confirmation).toContainText(
+    "Seguirá disponible en los textos que ya lo usan.",
+  );
+  await expect(confirmation).toHaveCSS(
+    "background-color",
+    "rgb(248, 247, 242)",
+  );
+  await expect(
+    confirmation.getByRole("button", { name: "Sí, eliminar" }),
+  ).toHaveCSS("background-color", "rgb(94, 109, 81)");
+  await page.screenshot({
+    path: test.info().outputPath("resource-confirmation.png"),
+  });
+  await confirmation.getByRole("button", { name: "Sí, eliminar" }).click();
   await expect(detail).toHaveCount(0);
   expect(deleted).toBe(true);
   await expect(
@@ -101,18 +117,30 @@ test("only own contributions offer deletion, cancellation preserves them and err
       );
     },
   );
-  page.once("dialog", (dialog) => dialog.dismiss());
   await remove.click();
+  const confirmation = page.getByRole("dialog", {
+    name: "¿Eliminar este recurso?",
+  });
+  await expect(
+    confirmation.getByRole("button", { name: "Cancelar" }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(confirmation).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Mi imagen" })).toBeVisible();
+  await expect(remove).toBeFocused();
+  expect(attempts).toBe(0);
+  await remove.click();
+  await confirmation.getByRole("button", { name: "Cancelar" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   expect(attempts).toBe(0);
-  page.once("dialog", (dialog) => dialog.accept());
   await remove.click();
+  await confirmation.getByRole("button", { name: "Sí, eliminar" }).click();
   await expect(page.getByRole("alert")).toContainText(
     "No se pudo eliminar el recurso.",
   );
   await expect(remove).toBeEnabled();
-  page.once("dialog", (dialog) => dialog.accept());
   await remove.click();
+  await confirmation.getByRole("button", { name: "Sí, eliminar" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Mi imagen", exact: true }),
