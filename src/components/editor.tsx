@@ -832,16 +832,22 @@ export function WritingEditor({
                   value={draft.appearance[name]}
                   onChange={(e) => appearance(name, e.target.value)}
                 >
-                  {fonts.map((f) => (
-                    <option key={f.key} value={f.key}>
-                      {f.name} · {f.kind}
-                    </option>
-                  ))}
-                  {fontResources.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
+                  <optgroup label="Fuentes incluidas">
+                    {fonts.map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.name} · {f.kind}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {fontResources.length > 0 && (
+                    <optgroup label="Fuentes aportadas">
+                      {fontResources.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} · Aportada
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                   {!fonts.some((f) => f.key === draft.appearance[name]) &&
                     !fontResources.some(
                       (r) => r.id === draft.appearance[name],
