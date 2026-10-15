@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { imageLayoutSchema } from "./image-layout";
 export const papers = [
   { key: "cream", name: "Marfil", note: "Fondo marfil con textura suave" },
   { key: "cotton", name: "Algodón", note: "Textura de papel de algodón" },
@@ -142,6 +143,12 @@ export function validateContent(value: unknown): value is ContentNode {
       n.type === "image" &&
       !z.uuid().safeParse(n.attrs?.assetId).success &&
       !z.uuid().safeParse(n.attrs?.resourceId).success
+    )
+      return false;
+    if (
+      n.type === "image" &&
+      n.attrs?.layout != null &&
+      !imageLayoutSchema.safeParse(n.attrs.layout).success
     )
       return false;
     if (

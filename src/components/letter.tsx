@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { family, papers, type Appearance, type ContentNode } from "@/lib/model";
+import { imageBottom, imageStyle, readImageLayout } from "@/lib/image-layout";
 const uuid = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i;
 export function resourceUrl(id: string, token?: string) {
   return `/api/resource/${id}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
@@ -87,6 +88,20 @@ function Content({
         : uuid.test(resource)
           ? resourceUrl(resource, token)
           : null;
+      const layout = readImageLayout(node.attrs?.layout);
+      if (src && layout)
+        return (
+          <figure
+            className="floating-image letter-floating-image"
+            style={imageStyle(layout)}
+          >
+            <img
+              src={src}
+              alt={String(node.attrs?.alt ?? "")}
+              loading="eager"
+            />
+          </figure>
+        );
       return src ? (
         <figure>
           <img src={src} alt={String(node.attrs?.alt ?? "")} loading="eager" />
@@ -169,6 +184,11 @@ export function Letter({
         className={`letter paper-${papers.some((p) => p.key === appearance.paper) ? appearance.paper : "custom"} ${className}`}
         style={paperStyle(appearance, token)}
       >
+        <div
+          className="image-sheet-extent"
+          aria-hidden="true"
+          style={{ height: `${imageBottom(content)}cqw` }}
+        />
         <div className="letter-date">{date}</div>
         <h1 className="letter-title">{title}</h1>
         <div className="letter-content">

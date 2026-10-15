@@ -9,6 +9,24 @@ import {
 } from "../../src/lib/model";
 const id = "a72b0f89-aedd-4ad2-a5ac-92e6d6137b07";
 describe("untrusted editor content", () => {
+  it("validates saved image geometry while accepting legacy images", () => {
+    const content = (layout: unknown) => ({
+      type: "doc",
+      content: [{ type: "image", attrs: { assetId: id, layout } }],
+    });
+    const layout = { x: 12, y: 35, width: 40, rotation: -25, ratio: 1.5 };
+    expect(validateContent(content(layout))).toBe(true);
+    expect(validateContent(content(null))).toBe(true);
+    for (const bad of [
+      { width: 0 },
+      { x: -1 },
+      { rotation: 900 },
+      { ratio: 0 },
+      { y: "20px" },
+      { x: Infinity },
+    ])
+      expect(validateContent(content({ ...layout, ...bad }))).toBe(false);
+  });
   it("accepts formatted Spanish text and owned image references", () =>
     expect(
       validateContent({

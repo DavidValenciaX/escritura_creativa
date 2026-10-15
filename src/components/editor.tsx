@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Image from "@tiptap/extension-image";
+import { LetterImage } from "./letter-image";
+import { imageBottom, newImageLayout } from "@/lib/image-layout";
 import TextAlign from "@tiptap/extension-text-align";
 import {
   ArrowLeft,
@@ -42,15 +43,6 @@ import { ErrorMessage, Modal } from "./ui";
 import { Sharing } from "./sharing";
 import { printLetter } from "@/lib/print";
 import { stableJson } from "@/lib/stable-json";
-const LetterImage = Image.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      assetId: { default: null },
-      resourceId: { default: null },
-    };
-  },
-});
 const asDraft = (doc: Document): Draft => ({
   title: doc.title,
   written_on: doc.written_on,
@@ -279,8 +271,15 @@ export function WritingEditor({
           if (localMode) {
             setDraft(stored.draft);
             draftRef.current = stored.draft;
-            editor.commands.setContent(editorContent(stored.draft.content), {
-              emitUpdate: false,
+            // React node views must mount after this effect has committed.
+            queueMicrotask(() => {
+              if (!editor.isDestroyed)
+                editor.commands.setContent(
+                  editorContent(stored.draft.content),
+                  {
+                    emitUpdate: false,
+                  },
+                );
             });
             clean.current = fingerprint(stored.draft);
             setStatus("Guardado en este navegador");
@@ -462,7 +461,10 @@ export function WritingEditor({
     setUploading(true);
     setError("");
     try {
-      let attrs: Record<string, unknown> = { alt };
+      let attrs: Record<string, unknown> = {
+        alt,
+        layout: { ...newImageLayout },
+      };
       if (communityImage) {
         attrs = {
           ...attrs,
@@ -733,6 +735,11 @@ export function WritingEditor({
               className={`editor-page paper-${draft.appearance.paper}`}
               style={paperStyle(draft.appearance)}
             >
+              <div
+                className="image-sheet-extent"
+                aria-hidden="true"
+                style={{ height: `${imageBottom(draft.content)}cqw` }}
+              />
               <label className="editor-date">
                 <span className="sr-only">Fecha del texto</span>
                 <input
@@ -893,6 +900,9 @@ export function WritingEditor({
                   .length
               }{" "}
               palabras
+              <br />
+              Selecciona una imagen para moverla, escalarla o girarla. También
+              puedes usar las flechas en sus controles.
               <br />
               Tu borrador es privado. Publica una versión cuando esté listo.
             </p>

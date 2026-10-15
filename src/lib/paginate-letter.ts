@@ -62,6 +62,9 @@ export function paginateLetter(
   }
   function cloneBlock(source: HTMLElement) {
     const clone = source.cloneNode(true) as HTMLElement;
+    clone
+      .querySelectorAll(".letter-floating-image")
+      .forEach((image) => image.remove());
     // Explicit values preserve numbered lists when their items span pages.
     if (source.tagName === "LI" && source.parentElement?.tagName === "OL") {
       const list = source.parentElement as HTMLOListElement;
@@ -164,6 +167,7 @@ export function paginateLetter(
     }
   }
   function flow(source: HTMLElement, path: HTMLElement[]) {
+    if (source.matches(".letter-floating-image, .image-sheet-extent")) return;
     const target = parent(path);
     const clone = cloneBlock(source);
     target.appendChild(clone);
@@ -208,6 +212,31 @@ export function paginateLetter(
       } else flow(element, []);
     }
     tidy();
+    // Floating images use sheet coordinates, independently of their text anchor.
+    // Place each image once on the corresponding exported sheet, keeping it whole.
+    const contentHeight = pageHeight - margin * 2 - safety;
+    const origin = letter.getBoundingClientRect();
+    for (const image of letter.querySelectorAll<HTMLElement>(
+      ".letter-floating-image",
+    )) {
+      const bounds = image.getBoundingClientRect();
+      if (bounds.height > contentHeight)
+        throw new Error(
+          "Una imagen es demasiado alta para exportarla. Reduce su tamaño e inténtalo de nuevo.",
+        );
+      const offset = Math.max(0, bounds.top - origin.top - margin);
+      let index = Math.floor(offset / contentHeight);
+      let top = margin + (offset % contentHeight);
+      if (top + bounds.height > pageHeight - margin - safety) {
+        index++;
+        top = margin;
+      }
+      while (pages.length <= index) nextPage();
+      const clone = image.cloneNode(true) as HTMLElement;
+      // Account for the rotated bounding box relative to the unrotated element.
+      clone.style.top = `${top + (bounds.height - image.offsetHeight) / 2}px`;
+      pages[index].element.appendChild(clone);
+    }
     return pages.map((p) => p.element);
   } catch (error) {
     pages.forEach((p) => p.element.remove());

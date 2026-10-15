@@ -839,6 +839,100 @@ input[type="range"] {
   min-height: 600px;
   color: var(--ink);
 }
+.editor-page,
+.letter {
+  position: relative;
+  container-type: inline-size;
+  display: flow-root;
+}
+.image-sheet-extent {
+  float: left;
+  width: 0;
+  pointer-events: none;
+}
+.inline-image {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 20px 0;
+}
+.floating-image {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  transform-origin: center;
+}
+.editable-image {
+  user-select: none;
+  touch-action: none;
+  line-height: 0;
+}
+.image-move-target {
+  width: 100%;
+  height: 100%;
+  cursor: move;
+  outline: none;
+}
+.tiptap .editable-image img,
+.letter .letter-floating-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  pointer-events: none;
+}
+.tiptap .inline-image img {
+  width: auto;
+  height: auto;
+}
+.letter-content figure.letter-floating-image {
+  margin: 0;
+}
+.image-selected {
+  outline: 2px solid var(--accent);
+  z-index: 3;
+}
+.image-move-target:focus-visible {
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+}
+.image-control {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  background: #fffefa;
+  color: var(--accent);
+  touch-action: none;
+}
+.image-rotate-handle {
+  top: -34px;
+  left: calc(50% - 14px);
+  cursor: grab;
+}
+.image-resize-handle {
+  bottom: -14px;
+  right: -14px;
+  border-radius: 4px;
+  cursor: nwse-resize;
+}
+.image-delete {
+  top: -14px;
+  right: -14px;
+}
+@media print {
+  .image-control {
+    display: none !important;
+  }
+  .image-selected {
+    outline: none;
+  }
+}
 .editor-page .title-input {
   font-family: var(--title-font);
   font-size: 38px;
@@ -870,6 +964,9 @@ input[type="range"] {
   min-height: 320px;
   color: var(--ink);
   overflow-wrap: anywhere;
+}
+.editor-page .tiptap {
+  position: static;
 }
 .tiptap p {
   line-height: inherit;
