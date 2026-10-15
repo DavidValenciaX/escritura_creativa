@@ -4,6 +4,8 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { LetterImage } from "./letter-image";
 import { imageBottom, newImageLayout } from "@/lib/image-layout";
+import { letterDate } from "@/lib/sheet-layout";
+import { SheetFrame, SheetField } from "./sheet-frame";
 import TextAlign from "@tiptap/extension-text-align";
 import {
   ArrowLeft,
@@ -731,56 +733,60 @@ export function WritingEditor({
               </button>
             </div>
             <PaperStyle appearance={draft.appearance} />
-            <div
-              className={`editor-page paper-${draft.appearance.paper}`}
-              style={paperStyle(draft.appearance)}
-            >
+            <SheetFrame>
               <div
-                className="image-sheet-extent"
-                aria-hidden="true"
-                style={{ height: `${imageBottom(draft.content)}cqw` }}
-              />
-              <label className="editor-date">
-                <span className="sr-only">Fecha del texto</span>
-                <input
-                  type="date"
-                  disabled={actionBusy || !hydrated}
-                  value={draft.written_on}
-                  onChange={(e) => change("written_on", e.target.value)}
-                  onBlur={() => {
-                    if (!draft.written_on)
-                      change(
-                        "written_on",
-                        new Date().toLocaleDateString("en-CA", {
-                          timeZone: "America/Bogota",
-                        }),
-                      );
-                  }}
+                className={`editor-page sheet-document paper-${draft.appearance.paper}`}
+                style={paperStyle(draft.appearance)}
+              >
+                <div
+                  className="image-sheet-extent"
+                  aria-hidden="true"
+                  style={{ height: `${imageBottom(draft.content)}cqw` }}
                 />
-              </label>
-              <input
-                className="title-input"
-                aria-label="Título del texto"
-                disabled={actionBusy || !hydrated}
-                maxLength={200}
-                value={draft.title}
-                onChange={(e) => change("title", e.target.value)}
-                onBlur={() => {
-                  if (!draft.title.trim()) change("title", "Sin título");
-                }}
-                placeholder="Título del texto"
-              />
-              <EditorContent editor={editor} />
-              <input
-                className="signature-input"
-                aria-label="Firma"
-                disabled={actionBusy || !hydrated}
-                maxLength={500}
-                placeholder="Firma (opcional)"
-                value={draft.signature}
-                onChange={(e) => change("signature", e.target.value)}
-              />
-            </div>
+                <label className="editor-date letter-date">
+                  <span className="sr-only">Fecha del texto</span>
+                  <span>{letterDate(draft.written_on)}</span>
+                  <input
+                    type="date"
+                    disabled={actionBusy || !hydrated}
+                    value={draft.written_on}
+                    onChange={(e) => change("written_on", e.target.value)}
+                    onBlur={() => {
+                      if (!draft.written_on)
+                        change(
+                          "written_on",
+                          new Date().toLocaleDateString("en-CA", {
+                            timeZone: "America/Bogota",
+                          }),
+                        );
+                    }}
+                  />
+                </label>
+                <SheetField
+                  className="letter-title"
+                  label="Título del texto"
+                  disabled={actionBusy || !hydrated}
+                  maxLength={200}
+                  value={draft.title}
+                  onChange={(value) => change("title", value)}
+                  onBlur={() => {
+                    if (!draft.title.trim()) change("title", "Sin título");
+                  }}
+                  placeholder="Título del texto"
+                />
+                <EditorContent editor={editor} />
+                <SheetField
+                  className={`letter-signature ${draft.signature ? "" : "signature-empty"}`}
+                  label="Firma"
+                  disabled={actionBusy || !hydrated}
+                  maxLength={500}
+                  placeholder="Firma (opcional)"
+                  value={draft.signature}
+                  onChange={(value) => change("signature", value)}
+                />
+                <div className="letter-end">✦</div>
+              </div>
+            </SheetFrame>
           </div>
           <aside className="design-panel">
             <h3>Formato del texto</h3>

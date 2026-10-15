@@ -58,16 +58,17 @@ function LetterImageView({
     const image = element.querySelector("img")!;
     const rect = image.getBoundingClientRect();
     const page = paper.getBoundingClientRect();
+    const scale = page.width / paper.offsetWidth;
     const start = layout ?? {
-      x: (rect.left - page.left - paper.clientLeft) / unit,
-      y: (rect.top - page.top - paper.clientTop) / unit,
+      x: (rect.left - page.left - paper.clientLeft * scale) / (unit * scale),
+      y: (rect.top - page.top - paper.clientTop * scale) / (unit * scale),
       width: Math.min(100, image.offsetWidth / unit),
       rotation: 0,
       ratio: image.naturalWidth / image.naturalHeight || 1,
     };
     return {
       start,
-      unit,
+      unit: unit * scale,
       width: paper.clientWidth / unit,
       height: paper.clientHeight / unit,
       cx: rect.left + rect.width / 2,
@@ -216,6 +217,9 @@ function LetterImageView({
           }}
         />
       </div>
+      {!layout && node.attrs.alt && (
+        <div className="image-caption">{String(node.attrs.alt)}</div>
+      )}
       {controls && (
         <>
           <button

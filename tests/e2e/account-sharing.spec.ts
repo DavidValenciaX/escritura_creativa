@@ -574,7 +574,7 @@ test("shared paper fills the viewport without studio navigation", async ({
     });
   });
   await page.goto(fixture("focus"));
-  const letter = page.locator(".letter");
+  const letter = page.locator(".letter-frame");
   await expect(letter).toBeVisible();
   const bounds = await letter.boundingBox();
   const viewport = page.viewportSize()!;
@@ -632,10 +632,14 @@ for (const mode of ["notebook", "account-notebook"]) {
     await expect(
       page.getByRole("heading", { name: "Alejandra" }),
     ).toBeVisible();
-    await expect(page.locator(".letter:visible")).toHaveCount(0);
+    await expect(page.locator(".reader-list .letter:visible")).toHaveCount(0);
     await expect(page.locator(".card-actions")).toHaveCount(0);
-    await expect(cards.first().locator(".paper-lined")).toBeVisible();
-    await expect(cards.last().locator(".paper-vintage")).toBeVisible();
+    await expect(
+      cards.first().locator(".letter-frame.paper-lined"),
+    ).toBeVisible();
+    await expect(
+      cards.last().locator(".letter-frame.paper-vintage"),
+    ).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(page.viewportSize()!.width);
@@ -655,7 +659,7 @@ for (const mode of ["notebook", "account-notebook"]) {
       exact: true,
     });
     await expect(reader).toBeVisible();
-    await expect(page.locator(".letter:visible")).toHaveCount(1);
+    await expect(page.locator(".reader-list .letter:visible")).toHaveCount(1);
     await expect(
       reader.getByRole("heading", { name: "Otra página", exact: true }),
     ).toBeVisible();
@@ -677,7 +681,7 @@ for (const mode of ["notebook", "account-notebook"]) {
       reader.getByRole("button", { name: "Volver al cuaderno" }),
     ).toBeInViewport();
     await page.emulateMedia({ media: "print" });
-    await expect(page.locator(".letter:visible")).toHaveCount(1);
+    await expect(page.locator(".reader-list .letter:visible")).toHaveCount(1);
     await expect(reader).toHaveCSS("overflow", "visible");
     await page.emulateMedia({ media: "screen" });
     await page.screenshot({
@@ -714,7 +718,7 @@ for (const mode of ["notebook", "account-notebook"]) {
     await expect(firstReader).toHaveCount(0);
     await expect(first).toBeFocused();
     await page.emulateMedia({ media: "print" });
-    await expect(page.locator(".letter:visible")).toHaveCount(2);
+    await expect(page.locator(".reader-list .letter:visible")).toHaveCount(2);
   });
 }
 

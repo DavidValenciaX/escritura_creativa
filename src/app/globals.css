@@ -261,15 +261,6 @@ input[type="range"] {
 .focus-reading .reader-list > div {
   position: relative;
 }
-.focus-reading .reader-list .letter {
-  width: 100%;
-  max-width: none;
-  min-height: 100svh;
-  margin: 0;
-  border: 0;
-  box-shadow: none;
-  padding: 90px clamp(24px, 12vw, 220px) 60px;
-}
 .focus-reading .reader-list .screen-only {
   position: absolute;
   bottom: 12px;
@@ -278,10 +269,6 @@ input[type="range"] {
 @media print {
   .focus-reading {
     min-height: 0;
-  }
-  .focus-reading .reader-list .letter {
-    min-height: 0;
-    padding: 12mm;
   }
 }
 .app-body {
@@ -680,27 +667,6 @@ input[type="range"] {
   overflow: hidden;
   position: relative;
 }
-.document-card .paper-thumbnail {
-  padding: 25px 22px;
-  min-height: 175px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.paper-thumbnail h3 {
-  font-family: var(--title-font, "Caveat");
-  font-size: 29px;
-  line-height: 1.3;
-  margin: 10px 0;
-}
-.paper-thumbnail p {
-  font-family: var(--body-font, "Lora");
-  font-size: 12px;
-  line-height: 1.9;
-  max-height: 70px;
-  overflow: hidden;
-  color: #767467;
-}
 .card-meta {
   padding: 18px 20px;
   display: flex;
@@ -835,8 +801,6 @@ input[type="range"] {
   margin: 0 6px;
 }
 .editor-page {
-  padding: 40px;
-  min-height: 600px;
   color: var(--ink);
 }
 .editor-page,
@@ -933,35 +897,11 @@ input[type="range"] {
     outline: none;
   }
 }
-.editor-page .title-input {
-  font-family: var(--title-font);
-  font-size: 38px;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  margin: 20px 0 30px;
-  border-radius: 0;
-  line-height: 1.4;
-  color: var(--ink);
-}
-.editor-date {
-  max-width: 160px;
-}
-.editor-date input {
-  background: transparent;
-  border: 0;
-  font-size: 10px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 0;
-  color: var(--muted);
-}
 .tiptap {
   outline: none;
   font-family: var(--body-font);
   font-size: var(--letter-size);
   line-height: var(--letter-leading);
-  min-height: 320px;
   color: var(--ink);
   overflow-wrap: anywhere;
 }
@@ -1003,15 +943,6 @@ input[type="range"] {
 .letter-content a {
   color: var(--accent);
   text-decoration: underline;
-}
-.signature-input {
-  border: 0;
-  background: transparent;
-  font-family: var(--title-font);
-  font-size: 26px;
-  margin-top: 20px;
-  padding: 0;
-  color: var(--ink);
 }
 .design-panel {
   background: #fcfbf7;
@@ -2091,4 +2022,208 @@ body:has(.notebook-reader[open]) {
 }
 .social-export .letter-content {
   font-size: var(--letter-size);
+}
+
+/* One composition for editing, reading, thumbnails and export. Only the whole
+   canvas scales; media queries must never reflow individual parts of a sheet. */
+.sheet-frame {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.sheet-canvas {
+  flex: none;
+  width: 820px;
+}
+.sheet-frame .sheet-canvas .sheet-document {
+  width: 820px;
+  max-width: none;
+  min-height: 560px;
+  margin: 0;
+  padding: 55px 60px;
+  border: 0;
+  text-align: left;
+  font-weight: 400;
+}
+.sheet-document .letter-date {
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  margin: 0;
+}
+.sheet-document .letter-title {
+  font-family: var(--title-font);
+  font-size: 44px;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: 0;
+  margin: 32px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sheet-document :is(.tiptap, .letter-content) {
+  position: static;
+  min-height: 0;
+  font-family: var(--body-font);
+  font-size: var(--letter-size);
+  line-height: var(--letter-leading);
+  letter-spacing: normal;
+}
+.sheet-document :is(.tiptap, .letter-content) p {
+  font-family: inherit;
+  font-size: inherit;
+  margin: 0 0 1em;
+  line-height: inherit;
+}
+.sheet-document :is(.tiptap, .letter-content) :is(h1, h2, h3, h4) {
+  font-family: inherit;
+  font-size: 1.4em;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  margin: 1em 0 0.5em;
+}
+.sheet-document .letter-signature {
+  font-family: var(--title-font);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.35;
+  margin: 40px 0 0;
+  white-space: pre-wrap;
+}
+.sheet-document .letter-end {
+  line-height: 1.5;
+  margin: 30px 0 0;
+}
+.sheet-document .editor-date {
+  position: relative;
+  display: block;
+  max-width: none;
+  width: 100%;
+  height: 14px;
+}
+.sheet-document .editor-date input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.editor-date:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.sheet-field {
+  position: relative;
+  display: grid;
+}
+.sheet-field-measure,
+.sheet-field textarea {
+  grid-area: 1 / 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sheet-field-measure {
+  visibility: hidden;
+}
+.sheet-document .sheet-field textarea {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+.sheet-document .signature-empty {
+  height: 0;
+  margin: 0;
+}
+.signature-empty textarea {
+  position: absolute;
+  top: 20px;
+  height: 44px !important;
+}
+.signature-empty .sheet-field-measure {
+  height: 0;
+}
+.sheet-document .inline-image {
+  width: auto;
+  margin: 24px 0;
+}
+.sheet-document .inline-image img {
+  max-height: 700px;
+  margin: auto;
+  object-fit: contain;
+}
+.sheet-document :is(figcaption, .image-caption) {
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 10px;
+}
+.document-card .paper-thumbnail {
+  display: block;
+  padding: 0;
+  min-height: 0;
+  container-type: inline-size;
+  overflow: hidden;
+}
+.paper-thumbnail .sheet-frame {
+  /* Show short letters completely and the first sheet of longer letters. */
+  max-height: 125cqw;
+}
+.paper-thumbnail :is(h3, p) {
+  max-height: none;
+  overflow: visible;
+  color: inherit;
+}
+.paper-thumbnail .letter {
+  box-shadow: none;
+}
+.focus-reading .reader-list .letter-frame {
+  min-height: 100svh;
+}
+@media screen {
+  .focus-reading .reader-list .sheet-document {
+    background: transparent !important;
+    box-shadow: none;
+  }
+}
+.social-export .sheet-canvas .sheet-document {
+  min-height: 1025px;
+}
+@media print {
+  .sheet-frame {
+    display: block;
+    overflow: visible;
+    min-height: 0 !important;
+    background: none !important;
+  }
+  .sheet-canvas {
+    /* A4 minus the existing 18mm page margins: 174mm / 820px. */
+    zoom: 0.802 !important;
+  }
+  .reader-list > .letter-frame + .letter-frame,
+  .reader-list > div + div {
+    break-before: page;
+  }
 }

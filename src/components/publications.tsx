@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Search, Feather, Heart, ArrowUpRight } from "lucide-react";
-import { type Publication, textContent } from "@/lib/model";
-import { PaperStyle, paperStyle } from "./letter";
+import { type Publication } from "@/lib/model";
+import { Letter } from "./letter";
 import { api, ErrorMessage } from "./ui";
 export type PublicEntry = Publication & {
   profile?: { display_name: string; handle: string };
@@ -49,24 +49,9 @@ export function Publications({
       <div className="document-grid">
         {visible.map((p) => (
           <article className="document-card" key={p.document_id}>
-            <PaperStyle appearance={p.appearance} />
             <Link href={`/text/${p.document_id}`}>
-              <div
-                className={`paper-thumbnail paper-${p.appearance.paper}`}
-                style={paperStyle(p.appearance)}
-              >
-                <span
-                  className="eyebrow"
-                  style={{ fontSize: 8, marginBottom: 0 }}
-                >
-                  {new Date(p.published_at).toLocaleDateString("es-CO", {
-                    day: "numeric",
-                    month: "long",
-                    timeZone: "America/Bogota",
-                  })}
-                </span>
-                <h3>{p.title}</h3>
-                <p>{textContent(p.content).slice(0, 180)}</p>
+              <div className="paper-thumbnail">
+                <Letter {...p} thumbnail />
               </div>
             </Link>
             <div className="card-meta">

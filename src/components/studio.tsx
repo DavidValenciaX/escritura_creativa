@@ -21,7 +21,7 @@ import {
   type Notebook,
   type Resource,
 } from "@/lib/model";
-import { PaperStyle, paperStyle } from "./letter";
+import { Letter } from "./letter";
 import { WritingEditor } from "./editor";
 import { Sharing } from "./sharing";
 import { api, ErrorMessage, Modal } from "./ui";
@@ -282,7 +282,6 @@ export function Studio() {
             const pub = publications.find((p) => p.document_id === doc.id);
             return (
               <article className="document-card" key={doc.id}>
-                <PaperStyle appearance={doc.appearance} />
                 <button
                   style={{
                     width: "100%",
@@ -291,24 +290,8 @@ export function Studio() {
                   }}
                   onClick={() => openDocument(doc)}
                 >
-                  <div
-                    className={`paper-thumbnail paper-${doc.appearance.paper}`}
-                    style={paperStyle(doc.appearance)}
-                  >
-                    <span
-                      className="eyebrow"
-                      style={{ fontSize: 8, marginBottom: 3 }}
-                    >
-                      {new Date(
-                        `${doc.written_on}T12:00:00Z`,
-                      ).toLocaleDateString("es-CO", {
-                        day: "numeric",
-                        month: "long",
-                        timeZone: "America/Bogota",
-                      })}
-                    </span>
-                    <h3>{doc.title}</h3>
-                    <p>{textContent(doc.content) || "Texto vacío"}</p>
+                  <div className="paper-thumbnail">
+                    <Letter {...doc} thumbnail />
                   </div>
                 </button>
                 <div className="card-meta">

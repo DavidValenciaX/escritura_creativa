@@ -1,3 +1,4 @@
+import { SHEET_PADDING_X, SHEET_PADDING_Y } from "./sheet-layout";
 type Page = {
   element: HTMLElement;
   parents: Map<HTMLElement, HTMLElement>;
@@ -8,7 +9,7 @@ type Page = {
 export function paginateLetter(
   letter: HTMLElement,
   pageHeight: number,
-  margin = 55,
+  margin = SHEET_PADDING_Y,
 ) {
   const pages: Page[] = [];
   let page: Page;
@@ -32,7 +33,7 @@ export function paginateLetter(
       width: `${width}px`,
       height: `${pageHeight}px`,
       minHeight: `${pageHeight}px`,
-      padding: `${margin}px 60px`,
+      padding: `${margin}px ${SHEET_PADDING_X}px`,
       transform: "none",
     });
     host.appendChild(element);

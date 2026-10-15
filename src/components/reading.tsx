@@ -3,8 +3,8 @@ import Link from "next/link";
 import { useEffect, useState, useRef, useId } from "react";
 import { Printer, ArrowLeft, BookOpen, Ellipsis, X } from "lucide-react";
 import { browserSupabase } from "@/lib/supabase/browser";
-import { textContent, type Publication } from "@/lib/model";
-import { Letter, PaperStyle, paperStyle } from "./letter";
+import { type Publication } from "@/lib/model";
+import { Letter } from "./letter";
 import { ReportButton } from "./ui";
 import { printLetter } from "@/lib/print";
 
@@ -301,7 +301,6 @@ export function Reading({
           <div className="document-grid screen-only">
             {publications.map((p) => (
               <article className="document-card" key={p.document_id}>
-                <PaperStyle appearance={p.appearance} token={token} />
                 <button
                   className="notebook-card-button"
                   aria-label={`Leer ${p.title}`}
@@ -311,22 +310,8 @@ export function Reading({
                     setSelectedId(p.document_id);
                   }}
                 >
-                  <div
-                    className={`paper-thumbnail paper-${p.appearance.paper}`}
-                    style={paperStyle(p.appearance, token)}
-                  >
-                    <span className="eyebrow">
-                      {new Date(`${p.written_on}T12:00:00Z`).toLocaleDateString(
-                        "es-CO",
-                        {
-                          day: "numeric",
-                          month: "long",
-                          timeZone: "America/Bogota",
-                        },
-                      )}
-                    </span>
-                    <h3>{p.title}</h3>
-                    <p>{textContent(p.content) || "Texto vacío"}</p>
+                  <div className="paper-thumbnail">
+                    <Letter {...p} token={token} thumbnail />
                   </div>
                   <span className="card-meta">
                     Leer escrito <BookOpen size={15} />

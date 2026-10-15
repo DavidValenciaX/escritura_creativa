@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import { family, papers, type Appearance, type ContentNode } from "@/lib/model";
 import { imageBottom, imageStyle, readImageLayout } from "@/lib/image-layout";
+import { letterDate } from "@/lib/sheet-layout";
+import { SheetFrame } from "./sheet-frame";
 const uuid = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i;
 export function resourceUrl(id: string, token?: string) {
   return `/api/resource/${id}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
@@ -8,9 +10,11 @@ export function resourceUrl(id: string, token?: string) {
 function Content({
   node,
   token,
+  thumbnail = false,
 }: {
   node: ContentNode;
   token?: string;
+  thumbnail?: boolean;
 }): ReactNode {
   if (node.type === "text") {
     let text: ReactNode = node.text;
@@ -32,7 +36,7 @@ function Content({
           text = <code key={i}>{text}</code>;
           break;
         case "link":
-          if (/^https?:\/\//i.test(String(mark.attrs?.href)))
+          if (!thumbnail && /^https?:\/\//i.test(String(mark.attrs?.href)))
             text = (
               <a
                 key={i}
@@ -48,7 +52,7 @@ function Content({
     return text;
   }
   const children = node.content?.map((n, i) => (
-    <Content key={i} node={n} token={token} />
+    <Content key={i} node={n} token={token} thumbnail={thumbnail} />
   ));
   const align = node.attrs?.textAlign;
   const style: CSSProperties =
@@ -162,6 +166,7 @@ export function Letter({
   written_on,
   token,
   className = "",
+  thumbnail = false,
 }: {
   title: string;
   content: ContentNode;
@@ -170,33 +175,36 @@ export function Letter({
   written_on: string;
   token?: string;
   className?: string;
+  thumbnail?: boolean;
 }) {
-  const date = new Date(`${written_on}T12:00:00Z`).toLocaleDateString("es-CO", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "America/Bogota",
-  });
+  const date = letterDate(written_on);
+  const paper = `paper-${papers.some((p) => p.key === appearance.paper) ? appearance.paper : "custom"}`;
+  const Title = thumbnail ? "h3" : "h1";
   return (
     <>
       <PaperStyle appearance={appearance} token={token} />
-      <article
-        className={`letter paper-${papers.some((p) => p.key === appearance.paper) ? appearance.paper : "custom"} ${className}`}
+      <SheetFrame
+        className={`letter-frame ${paper}`}
         style={paperStyle(appearance, token)}
       >
-        <div
-          className="image-sheet-extent"
-          aria-hidden="true"
-          style={{ height: `${imageBottom(content)}cqw` }}
-        />
-        <div className="letter-date">{date}</div>
-        <h1 className="letter-title">{title}</h1>
-        <div className="letter-content">
-          <Content node={content} token={token} />
-        </div>
-        {signature && <div className="letter-signature">{signature}</div>}
-        <div className="letter-end">✦</div>
-      </article>
+        <article
+          className={`letter sheet-document ${paper} ${className}`}
+          style={paperStyle(appearance, token)}
+        >
+          <div
+            className="image-sheet-extent"
+            aria-hidden="true"
+            style={{ height: `${imageBottom(content)}cqw` }}
+          />
+          <div className="letter-date">{date}</div>
+          <Title className="letter-title">{title}</Title>
+          <div className="letter-content">
+            <Content node={content} token={token} thumbnail={thumbnail} />
+          </div>
+          {signature && <div className="letter-signature">{signature}</div>}
+          <div className="letter-end">✦</div>
+        </article>
+      </SheetFrame>
     </>
   );
 }

@@ -7,6 +7,7 @@ import { Reading } from "../../src/components/reading";
 import { Sharing } from "../../src/components/sharing";
 import { Letter } from "../../src/components/letter";
 import { Studio } from "../../src/components/studio";
+import { CompositionFixture } from "./composition";
 import { richLetter } from "./rich-letter";
 import { paginateLetter } from "../../src/lib/paginate-letter";
 import "@fontsource/caveat/latin-400.css";
@@ -93,7 +94,9 @@ function SharingFixture() {
   );
 }
 createRoot(document.getElementById("root")!).render(
-  fixture === "settings" ? (
+  fixture === "composition" ? (
+    <CompositionFixture />
+  ) : fixture === "settings" ? (
     <Settings
       profile={profile}
       email="example@example.com"
