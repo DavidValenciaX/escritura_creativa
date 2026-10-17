@@ -9,7 +9,7 @@ async function composition(sheet: Locator) {
       date: ".letter-date",
       title: ".letter-title",
       body: ".tiptap p, .letter-content p",
-      signature: ".letter-signature",
+      closing: ".tiptap p:last-child, .letter-content p:last-child",
       image: ".floating-image",
       end: ".letter-end",
     };
@@ -54,11 +54,12 @@ test("all presentations preserve the complete sheet composition", async ({
     "font-family",
     /Dancing Script/,
   );
-  await expect(preview.locator(".letter-signature")).toHaveCSS(
+  await expect(preview.locator(".letter-content p:last-child")).toHaveCSS(
     "font-family",
-    /Kalam/,
+    /Courier Prime/,
   );
-  expect(reference.signature.fontSize).toBe(40);
+  expect(reference.closing.fontSize).toBe(22);
+  await expect(page.locator(".letter-signature")).toHaveCount(0);
   for (const width of [318, 240, 180, 96]) {
     await page.locator("#composition-thumbnail").evaluate((element, value) => {
       (element as HTMLElement).style.width = `${value + 2}px`;
@@ -72,8 +73,8 @@ test("all presentations preserve the complete sheet composition", async ({
       .soft(small.body.height, `thumbnail at ${width}px: body.height`)
       .toBeCloseTo(reference.body.height, 0);
     expect
-      .soft(small.signature.y, `thumbnail at ${width}px: signature.y`)
-      .toBeCloseTo(reference.signature.y, 0);
+      .soft(small.closing.y, `thumbnail at ${width}px: closing.y`)
+      .toBeCloseTo(reference.closing.y, 0);
   }
   await page.locator("#composition-thumbnail").evaluate((element) => {
     (element as HTMLElement).style.width = "320px";
@@ -87,10 +88,9 @@ test("all presentations preserve the complete sheet composition", async ({
     .toBeCloseTo(318, 0);
   for (const id of ["editor", "thumbnail", "shared"]) {
     const sheet = page.locator(`#composition-${id} .sheet-document`).first();
-    await expect(sheet.locator(".letter-signature")).toHaveCSS(
-      "font-family",
-      /Kalam/,
-    );
+    await expect(
+      sheet.locator(".tiptap p:last-child, .letter-content p:last-child"),
+    ).toHaveCSS("font-family", /Courier Prime/);
     const actual = await composition(sheet);
     for (const [name, dimensions] of Object.entries(reference)) {
       for (const [axis, value] of Object.entries(dimensions))
@@ -103,10 +103,11 @@ test("all presentations preserve the complete sheet composition", async ({
     }
   }
   const thumbnail = page.locator("#composition-thumbnail .sheet-frame");
-  const signature = page.locator("#composition-thumbnail .letter-signature");
+  const closing = page.locator(
+    "#composition-thumbnail .letter-content p:last-child",
+  );
   expect(
-    (await signature.boundingBox())!.y +
-      (await signature.boundingBox())!.height,
+    (await closing.boundingBox())!.y + (await closing.boundingBox())!.height,
   ).toBeLessThanOrEqual(
     (await thumbnail.boundingBox())!.y +
       (await thumbnail.boundingBox())!.height +
@@ -134,9 +135,9 @@ test("all presentations preserve the complete sheet composition", async ({
   await page.emulateMedia({ media: "print" });
   const printed = page.locator("#composition-print .sheet-document");
   await expect(printed).toBeVisible();
-  await expect(printed.locator(".letter-signature")).toHaveCSS(
+  await expect(printed.locator(".letter-content p:last-child")).toHaveCSS(
     "font-family",
-    /Kalam/,
+    /Courier Prime/,
   );
   const pdfComposition = await composition(printed);
   for (const [name, dimensions] of Object.entries(reference))

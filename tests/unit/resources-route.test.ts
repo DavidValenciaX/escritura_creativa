@@ -138,7 +138,49 @@ beforeEach(() => {
   mocks.save.mockResolvedValue({ data: {}, error: null });
 });
 
-describe("signature font references", () => {
+describe("body font references", () => {
+  it("saves legacy signatures as body text and clears the old field", async () => {
+    const docId = "33333333-3333-4333-8333-333333333333";
+    const draft = {
+      title: "Carta",
+      written_on: "2026-10-17",
+      content: { type: "doc", content: [{ type: "paragraph" }] },
+      appearance: defaultAppearance,
+      signature: "Con cariño,\nAutor",
+      notebook_id: null,
+      position: 0,
+    };
+    mocks.documents = [{ ...draft, id: docId, owner_id: ownerId }];
+    const response = await POST(
+      new Request("https://app.example/api/documents", {
+        method: "POST",
+        headers: { origin: "https://app.example" },
+        body: JSON.stringify({ action: "save", id: docId, revision: 1, draft }),
+      }),
+      { params: Promise.resolve({ path: ["documents"] }) },
+    );
+    expect(response.status).toBe(200);
+    expect(mocks.save).toHaveBeenCalledWith({
+      doc: docId,
+      expected_revision: 1,
+      payload: {
+        ...draft,
+        signature: "",
+        content: {
+          type: "doc",
+          content: [
+            { type: "paragraph" },
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Con cariño," }],
+            },
+            { type: "paragraph", content: [{ type: "text", text: "Autor" }] },
+          ],
+        },
+      },
+    });
+    expect(draft.signature).toBe("Con cariño,\nAutor");
+  });
   it.each([
     ["font", false, false, 200],
     ["image", false, false, 400],
@@ -156,7 +198,7 @@ describe("signature font references", () => {
           content: { type: "doc" },
           appearance: {
             ...defaultAppearance,
-            signatureFont: existing ? resourceId : "caveat",
+            bodyFont: existing ? resourceId : "caveat",
           },
         },
       ];
@@ -166,10 +208,9 @@ describe("signature font references", () => {
         content: { type: "doc" },
         appearance: {
           ...defaultAppearance,
-          signatureFont: resourceId,
-          signatureSize: 48,
+          bodyFont: resourceId,
         },
-        signature: "Autor",
+        signature: "",
         notebook_id: null,
         position: 0,
       };

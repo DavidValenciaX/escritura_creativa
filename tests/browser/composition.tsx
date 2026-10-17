@@ -13,8 +13,6 @@ export const compositionDocument: Document = {
     ...defaultAppearance,
     bodyFont: "courier",
     titleFont: "dancing",
-    signatureFont: "kalam",
-    signatureSize: 40,
     fontSize: 22,
   },
   notebook_id: null,

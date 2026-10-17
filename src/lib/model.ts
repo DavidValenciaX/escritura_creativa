@@ -57,8 +57,6 @@ export const defaultAppearance = {
   paper: "cream",
   titleFont: "caveat",
   bodyFont: "lora",
-  signatureFont: "caveat",
-  signatureSize: 32,
   fontSize: 18,
   lineHeight: 1.8,
   ink: "#34312d",
@@ -86,22 +84,14 @@ const fontKey = z
     (v) => fonts.some((f) => f.key === v) || z.uuid().safeParse(v).success,
     "Fuente inválida",
   );
-export const appearanceSchema = z
-  .object({
-    paper: paperKey,
-    titleFont: fontKey,
-    bodyFont: fontKey,
-    signatureFont: fontKey.optional(),
-    signatureSize: z.number().min(12).max(64).default(32),
-    fontSize: z.number().min(12).max(32),
-    lineHeight: z.number().min(1.2).max(2.5),
-    ink: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-  })
-  .transform((appearance) => ({
-    ...appearance,
-    // Existing letters used the title's font and a fixed 32px signature.
-    signatureFont: appearance.signatureFont ?? appearance.titleFont,
-  }));
+export const appearanceSchema = z.object({
+  paper: paperKey,
+  titleFont: fontKey,
+  bodyFont: fontKey,
+  fontSize: z.number().min(12).max(32),
+  lineHeight: z.number().min(1.2).max(2.5),
+  ink: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+});
 const allowedTypes = new Set([
   "doc",
   "paragraph",
@@ -189,7 +179,8 @@ export const draftSchema = z.object({
   written_on: z.iso.date(),
   content: z.custom<ContentNode>(validateContent, "Contenido inválido"),
   appearance: appearanceSchema,
-  signature: z.string().max(500),
+  // Retained for compatibility with existing database records and old clients.
+  signature: z.string().max(500).default(""),
   notebook_id: z.uuid().nullable(),
   position: z.number().int().min(0).max(100000),
 });
@@ -200,6 +191,31 @@ export const recoverySchema = draftSchema.extend({
   written_on: z.union([z.literal(""), z.iso.date()]),
 });
 export type Draft = z.infer<typeof draftSchema>;
+export function contentWithLegacySignature(
+  content: ContentNode,
+  signature = "",
+): ContentNode {
+  if (!signature) return content;
+  return {
+    ...content,
+    content: [
+      ...(content.content ?? []),
+      ...signature.split(/\r?\n/).map((line): ContentNode => ({
+        type: "paragraph",
+        ...(line ? { content: [{ type: "text", text: line }] } : {}),
+      })),
+    ],
+  };
+}
+export function withoutSignature<
+  T extends Pick<Draft, "content" | "signature">,
+>(writing: T): T {
+  return {
+    ...writing,
+    content: contentWithLegacySignature(writing.content, writing.signature),
+    signature: "",
+  };
+}
 export type Document = Draft & {
   id: string;
   owner_id: string;

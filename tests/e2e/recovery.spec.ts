@@ -122,36 +122,28 @@ const banner = (page: Page) =>
     exact: true,
   });
 
-test("legacy documents and local copies keep their signature when the title font changes", async ({
+test("legacy signatures become editable body text and remain once after saving and reopening", async ({
   page,
 }) => {
-  const { signatureFont, signatureSize, ...appearance } = initial.appearance;
-  // Emulate a server record and a local copy saved before signature settings existed.
-  const legacy = {
-    ...initial,
-    appearance: { ...appearance, titleFont: "dancing" },
-  } as Document;
-  const api = await setup(page, legacy);
-  await seed(page, asDraft(legacy));
+  const api = await setup(page);
+  await seed(page, asDraft(initial));
   await open(page);
   await expect(banner(page)).toHaveCount(0);
-  await expect(page.getByLabel("Letra de la firma")).toHaveValue("dancing");
-  await expect(page.getByLabel("Tamaño de la firma")).toHaveValue("32");
+  const body = page.getByRole("textbox", { name: "Cuerpo del texto" });
+  await expect(body.locator("p").last()).toHaveText("Autor");
+  await expect(
+    page.getByRole("textbox", { name: "Firma", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Letra de la firma")).toHaveCount(0);
+  await expect(page.getByLabel("Tamaño de la firma")).toHaveCount(0);
   await expect.poll(async () => (await stored(page))?.pending).toBe(false);
   expect(api.saves()).toBe(0);
-  await page.getByLabel("Letra del título").selectOption("courier");
-  await expect(page.locator(".editor-page .letter-signature")).toHaveCSS(
-    "font-family",
-    /Dancing Script/,
-  );
-  await expect.poll(() => api.document().appearance.titleFont).toBe("courier");
-  expect(api.document().appearance).toMatchObject({
-    signatureFont: "dancing",
-    signatureSize: 32,
-  });
+  await body.locator("p").last().fill("Autor actualizado");
+  await expect.poll(() => api.document().signature).toBe("");
   await open(page);
-  await expect(page.getByLabel("Letra del título")).toHaveValue("courier");
-  await expect(page.getByLabel("Letra de la firma")).toHaveValue("dancing");
+  await expect(body.locator("p").last()).toHaveText("Autor actualizado");
+  await expect(body).not.toContainText("Autor actualizadoAutor");
+  await expect(body.locator("p")).toHaveCount(2);
   await expect(banner(page)).toHaveCount(0);
 });
 
@@ -166,6 +158,8 @@ test("identical local copies and unchanged editor content never request recovery
   // Tiptap adds default attributes without changing the saved text.
   await page
     .getByRole("textbox", { name: "Cuerpo del texto" })
+    .locator("p")
+    .first()
     .fill("Contenido guardado.");
   await page.waitForTimeout(1100);
   expect(api.saves()).toBe(0);

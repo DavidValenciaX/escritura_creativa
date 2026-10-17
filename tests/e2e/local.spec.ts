@@ -47,34 +47,22 @@ test("local editor saves Spanish text and appearance across reloads", async ({
   await expect(page.getByRole("status")).toContainText(
     "Guardado en este navegador",
   );
-  await page
-    .getByRole("textbox", { name: "Firma", exact: true })
-    .fill("Con todo mi cariño");
-  await page.getByLabel("Letra de la firma").selectOption("kalam");
-  await page.getByLabel("Tamaño de la firma").fill("40");
+  await expect(
+    page.getByRole("textbox", { name: "Firma", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Letra de la firma")).toHaveCount(0);
+  await expect(page.getByLabel("Tamaño de la firma")).toHaveCount(0);
   await page.getByLabel("Letra del título").selectOption("courier");
-  await page.getByRole("slider", { name: /^Tamaño ·/ }).fill("26");
-  await expect(page.locator(".editor-page .letter-signature")).toHaveCSS(
-    "font-family",
-    /Kalam/,
-  );
-  await expect(page.locator(".editor-page .letter-signature")).toHaveCSS(
-    "font-size",
-    "40px",
-  );
-  await expect(page.locator(".editor-page .letter-title")).toHaveCSS(
-    "font-family",
-    /Courier Prime/,
-  );
+  await page.getByLabel("Letra del cuerpo").selectOption("kalam");
+  await page.getByLabel("Tamaño del cuerpo").fill("26");
   await expect
     .poll(async () => {
       const stored = await page.evaluate(() =>
         JSON.parse(localStorage.getItem("ec:preview") ?? "null"),
       );
       return (
-        stored?.draft.signature === "Con todo mi cariño" &&
-        stored?.draft.appearance.signatureFont === "kalam" &&
-        stored?.draft.appearance.signatureSize === 40 &&
+        stored?.draft.appearance.bodyFont === "kalam" &&
+        stored?.draft.appearance.fontSize === 26 &&
         stored?.pending === false
       );
     })
@@ -83,38 +71,39 @@ test("local editor saves Spanish text and appearance across reloads", async ({
   await expect(
     page.getByRole("textbox", { name: "Título del texto" }),
   ).toHaveValue("Una carta para mañana");
-  await expect(
-    page.getByRole("textbox", { name: "Cuerpo del texto" }),
-  ).toContainText("¡Hola, corazón!");
+  await expect(body).toContainText("¡Hola, corazón!");
+  await expect(page.getByLabel("Letra del título")).toHaveValue("courier");
+  await expect(page.getByLabel("Letra del cuerpo")).toHaveValue("kalam");
+  await expect(page.getByLabel("Tamaño del cuerpo")).toHaveValue("26");
   await expect(
     page.getByRole("button", { name: "Rosa suave", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel("Letra de la firma")).toHaveValue("kalam");
-  await expect(page.getByLabel("Tamaño de la firma")).toHaveValue("40");
   await page.getByRole("button", { name: "Vista previa", exact: true }).click();
   await expect(page.locator(".screen-only .letter-title")).toHaveText(
     "Una carta para mañana",
   );
-  await expect(page.locator(".screen-only .letter-signature")).toHaveCSS(
+  await expect(page.locator(".screen-only .letter-content")).toHaveCSS(
     "font-family",
     /Kalam/,
   );
-  await expect(page.locator(".screen-only .letter-signature")).toHaveCSS(
+  await expect(page.locator(".screen-only .letter-content")).toHaveCSS(
     "font-size",
-    "40px",
+    "26px",
   );
+  await expect(page.locator(".letter-signature")).toHaveCount(0);
   await page.emulateMedia({ media: "print" });
   await expect(page.locator(".print-only .letter-title")).toBeVisible();
-  await expect(page.locator(".print-only .letter-signature")).toHaveCSS(
+  await expect(page.locator(".print-only .letter-content")).toHaveCSS(
     "font-family",
     /Kalam/,
   );
-  await expect(page.locator(".print-only .letter-signature")).toHaveCSS(
+  await expect(page.locator(".print-only .letter-content")).toHaveCSS(
     "font-size",
-    "40px",
+    "26px",
   );
   await expect(page.locator(".topbar")).toBeHidden();
 });
+
 test("keyboard editing and disconnected local persistence remain available", async ({
   page,
   context,
@@ -218,7 +207,7 @@ test("long letter with images prints across multiple A4 pages", async ({
   ).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await page.emulateMedia({ media: "print" });
-  await expect(page.locator(".print-only .letter-signature")).toHaveText(
+  await expect(page.locator(".print-only .letter-content p").last()).toHaveText(
     "Hasta la próxima página,",
   );
   const pdf = await page.pdf({

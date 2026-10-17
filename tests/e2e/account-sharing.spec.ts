@@ -136,8 +136,6 @@ const socialPublication = {
     paper: "lined",
     titleFont: "dancing",
     bodyFont: "lora",
-    signatureFont: "kalam",
-    signatureSize: 40,
     fontSize: 18,
     lineHeight: 1.8,
     ink: "#34312d",
@@ -147,7 +145,7 @@ const socialPublication = {
   is_public: false,
   notebook_id: null,
 };
-test("export uses the same paper, date, title font and signature as the reading view", async ({
+test("export uses the same paper, date, title and body as the reading view", async ({
   page,
 }) => {
   await page.route("**/api/share-images", (route) =>
@@ -295,7 +293,7 @@ test("export includes custom paper, a community font and a personal photograph",
   );
   const publication = {
     ...socialPublication,
-    appearance: { ...socialPublication.appearance, paper, signatureFont: font },
+    appearance: { ...socialPublication.appearance, paper, bodyFont: font },
     content: {
       type: "doc",
       content: [

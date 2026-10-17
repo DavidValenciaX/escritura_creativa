@@ -33,6 +33,7 @@ import {
 import {
   recoverySchema,
   appearanceSchema,
+  withoutSignature,
   fonts,
   papers,
   textContent,
@@ -47,15 +48,16 @@ import { Sharing } from "./sharing";
 import { printLetter } from "@/lib/print";
 import { stableJson } from "@/lib/stable-json";
 import { appDialog } from "@/lib/dialog";
-const asDraft = (doc: Document): Draft => ({
-  title: doc.title,
-  written_on: doc.written_on,
-  content: doc.content,
-  appearance: appearanceSchema.parse(doc.appearance),
-  signature: doc.signature,
-  notebook_id: doc.notebook_id,
-  position: doc.position,
-});
+const asDraft = (doc: Document): Draft =>
+  withoutSignature({
+    title: doc.title,
+    written_on: doc.written_on,
+    content: doc.content,
+    appearance: appearanceSchema.parse(doc.appearance),
+    signature: doc.signature,
+    notebook_id: doc.notebook_id,
+    position: doc.position,
+  });
 function editorContent(content: ContentNode): ContentNode {
   return {
     ...content,
@@ -137,7 +139,7 @@ export function WritingEditor({
       LetterImage,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
     ],
-    content: editorContent(initial.content),
+    content: editorContent(draft.content),
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -153,8 +155,9 @@ export function WritingEditor({
       })),
   });
   const fingerprint = useCallback(
-    (value: Draft) =>
-      stableJson({
+    (value: Draft) => {
+      value = withoutSignature(value);
+      return stableJson({
         ...value,
         appearance: appearanceSchema.parse(value.appearance),
         // Tiptap supplies default attributes and runtime image URLs. Compare
@@ -162,7 +165,8 @@ export function WritingEditor({
         content: editor
           ? editor.schema.nodeFromJSON(editorContent(value.content)).toJSON()
           : value.content,
-      }),
+      });
+    },
     [editor],
   );
   const store = useCallback(
@@ -274,7 +278,7 @@ export function WritingEditor({
         const stored = JSON.parse(localStorage.getItem(key) ?? "null");
         const recovered = recoverySchema.safeParse(stored?.draft);
         if (recovered.success) {
-          stored.draft = recovered.data;
+          stored.draft = withoutSignature(recovered.data);
           if (localMode) {
             setDraft(stored.draft);
             draftRef.current = stored.draft;
@@ -802,15 +806,6 @@ export function WritingEditor({
                   placeholder="Título del texto"
                 />
                 <EditorContent editor={editor} />
-                <SheetField
-                  className={`letter-signature ${draft.signature ? "" : "signature-empty"}`}
-                  label="Firma"
-                  disabled={actionBusy || !hydrated}
-                  maxLength={500}
-                  placeholder="Firma (opcional)"
-                  value={draft.signature}
-                  onChange={(value) => change("signature", value)}
-                />
                 <div className="letter-end">✦</div>
               </div>
             </SheetFrame>
@@ -852,66 +847,48 @@ export function WritingEditor({
                 </select>
               </label>
             )}
-            {(["titleFont", "bodyFont", "signatureFont"] as const).map(
-              (name) => (
-                <label key={name}>
-                  {name === "titleFont"
-                    ? "Letra del título"
-                    : name === "bodyFont"
-                      ? "Letra del cuerpo"
-                      : "Letra de la firma"}
-                  <select
-                    value={draft.appearance[name]}
-                    onChange={(e) => appearance(name, e.target.value)}
-                  >
-                    <optgroup label="Fuentes incluidas">
-                      {fonts.map((f) => (
-                        <option key={f.key} value={f.key}>
-                          {f.name} · {f.kind}
+            {(["titleFont", "bodyFont"] as const).map((name) => (
+              <label key={name}>
+                {name === "titleFont" ? "Letra del título" : "Letra del cuerpo"}
+                <select
+                  value={draft.appearance[name]}
+                  onChange={(e) => appearance(name, e.target.value)}
+                >
+                  <optgroup label="Fuentes incluidas">
+                    {fonts.map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.name} · {f.kind}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {fontResources.length > 0 && (
+                    <optgroup label="Fuentes aportadas">
+                      {fontResources.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} · Aportada
                         </option>
                       ))}
                     </optgroup>
-                    {fontResources.length > 0 && (
-                      <optgroup label="Fuentes aportadas">
-                        {fontResources.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.name} · Aportada
-                          </option>
-                        ))}
-                      </optgroup>
+                  )}
+                  {!fonts.some((f) => f.key === draft.appearance[name]) &&
+                    !fontResources.some(
+                      (r) => r.id === draft.appearance[name],
+                    ) && (
+                      <option value={draft.appearance[name]}>
+                        Fuente conservada
+                      </option>
                     )}
-                    {!fonts.some((f) => f.key === draft.appearance[name]) &&
-                      !fontResources.some(
-                        (r) => r.id === draft.appearance[name],
-                      ) && (
-                        <option value={draft.appearance[name]}>
-                          Fuente conservada
-                        </option>
-                      )}
-                  </select>
-                </label>
-              ),
-            )}
+                </select>
+              </label>
+            ))}
             <label>
-              Tamaño · {draft.appearance.fontSize}px
+              Tamaño del cuerpo · {draft.appearance.fontSize}px
               <input
                 type="range"
                 min={12}
                 max={32}
                 value={draft.appearance.fontSize}
                 onChange={(e) => appearance("fontSize", Number(e.target.value))}
-              />
-            </label>
-            <label>
-              Tamaño de la firma · {draft.appearance.signatureSize}px
-              <input
-                type="range"
-                min={12}
-                max={64}
-                value={draft.appearance.signatureSize}
-                onChange={(e) =>
-                  appearance("signatureSize", Number(e.target.value))
-                }
               />
             </label>
             <label>

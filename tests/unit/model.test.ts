@@ -6,45 +6,40 @@ import {
   imageIds,
   referencesResource,
   validateContent,
+  withoutSignature,
+  textContent,
 } from "../../src/lib/model";
 const id = "a72b0f89-aedd-4ad2-a5ac-92e6d6137b07";
 describe("untrusted editor content", () => {
-  it("preserves legacy signatures and accepts independent signature typography", () => {
-    const { signatureFont, signatureSize, ...legacy } = defaultAppearance;
-    expect(
-      appearanceSchema.parse({ ...legacy, titleFont: "dancing" }),
-    ).toMatchObject({ signatureFont: "dancing", signatureSize: 32 });
+  it("moves legacy signatures into editable body paragraphs without duplication", () => {
+    const original = {
+      content: {
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: "Contenido" }] },
+        ],
+      },
+      signature: "Con cariño,\n\nDavid",
+    };
+    const normalized = withoutSignature(original);
+    expect(normalized.signature).toBe("");
+    expect(normalized.content.content).toHaveLength(4);
+    expect(normalized.content.content?.map(textContent)).toEqual([
+      "Contenido",
+      "Con cariño,",
+      "",
+      "David",
+    ]);
+    expect(original.signature).toBe("Con cariño,\n\nDavid");
+    expect(original.content.content).toHaveLength(1);
+    expect(withoutSignature(normalized)).toEqual(normalized);
     expect(
       appearanceSchema.parse({
-        ...legacy,
-        titleFont: "courier",
+        ...defaultAppearance,
         signatureFont: "kalam",
-        signatureSize: 48,
+        signatureSize: 40,
       }),
-    ).toMatchObject({
-      titleFont: "courier",
-      signatureFont: "kalam",
-      signatureSize: 48,
-    });
-    for (const invalid of [
-      { signatureFont: "../private" },
-      { signatureSize: 11 },
-      { signatureSize: 65 },
-      { signatureSize: "32px" },
-    ])
-      expect(
-        appearanceSchema.safeParse({ ...defaultAppearance, ...invalid })
-          .success,
-      ).toBe(false);
-    expect(
-      referencesResource(
-        {
-          appearance: { ...defaultAppearance, signatureFont: id },
-          content: { type: "doc" },
-        },
-        id,
-      ),
-    ).toBe(true);
+    ).toEqual(defaultAppearance);
   });
   it("validates saved image geometry while accepting legacy images", () => {
     const content = (layout: unknown) => ({

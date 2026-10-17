@@ -21,6 +21,7 @@ import {
   emptyContent,
   imageIds,
   referencesResource,
+  withoutSignature,
   type Draft,
   type Document,
 } from "@/lib/model";
@@ -83,7 +84,6 @@ async function validateReferences(draft: Draft, doc: Document) {
     { id: draft.appearance.paper, kind: "paper" },
     { id: draft.appearance.titleFont, kind: "font" },
     { id: draft.appearance.bodyFont, kind: "font" },
-    { id: draft.appearance.signatureFont, kind: "font" },
     ...imageIds(draft.content, "resourceId").map((id) => ({
       id,
       kind: "image",
@@ -526,7 +526,7 @@ export async function POST(request: Request, context: Context) {
         return NextResponse.json(data);
       }
       if (body.action === "save") {
-        const draft = draftSchema.parse(body.draft);
+        const draft = withoutSignature(draftSchema.parse(body.draft));
         await validateReferences(draft, document);
         const expected = z.number().int().positive().parse(body.revision);
         const { data, error } = await db

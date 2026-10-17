@@ -1,5 +1,11 @@
 import type { CSSProperties, ReactNode } from "react";
-import { family, papers, type Appearance, type ContentNode } from "@/lib/model";
+import {
+  family,
+  papers,
+  contentWithLegacySignature,
+  type Appearance,
+  type ContentNode,
+} from "@/lib/model";
 import { imageBottom, imageStyle, readImageLayout } from "@/lib/image-layout";
 import { letterDate } from "@/lib/sheet-layout";
 import { SheetFrame } from "./sheet-frame";
@@ -126,13 +132,9 @@ export function PaperStyle({
   appearance: Appearance;
   token?: string;
 }) {
-  const keys = [
-    ...new Set([
-      appearance.titleFont,
-      appearance.bodyFont,
-      appearance.signatureFont ?? appearance.titleFont,
-    ]),
-  ].filter((k) => uuid.test(k));
+  const keys = [...new Set([appearance.titleFont, appearance.bodyFont])].filter(
+    (k) => uuid.test(k),
+  );
   return (
     <>
       {keys.map((key) => (
@@ -152,8 +154,6 @@ export function paperStyle(
     "--ink": appearance.ink,
     "--body-font": `"${family(appearance.bodyFont)}", Georgia, serif`,
     "--title-font": `"${family(appearance.titleFont)}", Georgia, serif`,
-    "--signature-font": `"${family(appearance.signatureFont ?? appearance.titleFont)}", Georgia, serif`,
-    "--signature-size": `${appearance.signatureSize ?? 32}px`,
     "--letter-size": `${appearance.fontSize}px`,
     "--letter-leading": appearance.lineHeight,
     ...(customPaper
@@ -177,7 +177,7 @@ export function Letter({
   title: string;
   content: ContentNode;
   appearance: Appearance;
-  signature: string;
+  signature?: string;
   written_on: string;
   token?: string;
   className?: string;
@@ -205,9 +205,12 @@ export function Letter({
           <div className="letter-date">{date}</div>
           <Title className="letter-title">{title}</Title>
           <div className="letter-content">
-            <Content node={content} token={token} thumbnail={thumbnail} />
+            <Content
+              node={contentWithLegacySignature(content, signature)}
+              token={token}
+              thumbnail={thumbnail}
+            />
           </div>
-          {signature && <div className="letter-signature">{signature}</div>}
           <div className="letter-end">✦</div>
         </article>
       </SheetFrame>

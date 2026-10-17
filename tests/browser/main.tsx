@@ -54,8 +54,6 @@ const publication = {
     ...defaultAppearance,
     paper: "lined",
     titleFont: "dancing",
-    signatureFont: "kalam",
-    signatureSize: 40,
   },
   published_at: "2026-10-13",
   updated_at: "2026-10-13",
