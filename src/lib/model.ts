@@ -57,6 +57,8 @@ export const defaultAppearance = {
   paper: "cream",
   titleFont: "caveat",
   bodyFont: "lora",
+  signatureFont: "caveat",
+  signatureSize: 32,
   fontSize: 18,
   lineHeight: 1.8,
   ink: "#34312d",
@@ -84,14 +86,22 @@ const fontKey = z
     (v) => fonts.some((f) => f.key === v) || z.uuid().safeParse(v).success,
     "Fuente inválida",
   );
-export const appearanceSchema = z.object({
-  paper: paperKey,
-  titleFont: fontKey,
-  bodyFont: fontKey,
-  fontSize: z.number().min(12).max(32),
-  lineHeight: z.number().min(1.2).max(2.5),
-  ink: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-});
+export const appearanceSchema = z
+  .object({
+    paper: paperKey,
+    titleFont: fontKey,
+    bodyFont: fontKey,
+    signatureFont: fontKey.optional(),
+    signatureSize: z.number().min(12).max(64).default(32),
+    fontSize: z.number().min(12).max(32),
+    lineHeight: z.number().min(1.2).max(2.5),
+    ink: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  })
+  .transform((appearance) => ({
+    ...appearance,
+    // Existing letters used the title's font and a fixed 32px signature.
+    signatureFont: appearance.signatureFont ?? appearance.titleFont,
+  }));
 const allowedTypes = new Set([
   "doc",
   "paragraph",

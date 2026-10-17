@@ -122,6 +122,39 @@ const banner = (page: Page) =>
     exact: true,
   });
 
+test("legacy documents and local copies keep their signature when the title font changes", async ({
+  page,
+}) => {
+  const { signatureFont, signatureSize, ...appearance } = initial.appearance;
+  // Emulate a server record and a local copy saved before signature settings existed.
+  const legacy = {
+    ...initial,
+    appearance: { ...appearance, titleFont: "dancing" },
+  } as Document;
+  const api = await setup(page, legacy);
+  await seed(page, asDraft(legacy));
+  await open(page);
+  await expect(banner(page)).toHaveCount(0);
+  await expect(page.getByLabel("Letra de la firma")).toHaveValue("dancing");
+  await expect(page.getByLabel("Tamaño de la firma")).toHaveValue("32");
+  await expect.poll(async () => (await stored(page))?.pending).toBe(false);
+  expect(api.saves()).toBe(0);
+  await page.getByLabel("Letra del título").selectOption("courier");
+  await expect(page.locator(".editor-page .letter-signature")).toHaveCSS(
+    "font-family",
+    /Dancing Script/,
+  );
+  await expect.poll(() => api.document().appearance.titleFont).toBe("courier");
+  expect(api.document().appearance).toMatchObject({
+    signatureFont: "dancing",
+    signatureSize: 32,
+  });
+  await open(page);
+  await expect(page.getByLabel("Letra del título")).toHaveValue("courier");
+  await expect(page.getByLabel("Letra de la firma")).toHaveValue("dancing");
+  await expect(banner(page)).toHaveCount(0);
+});
+
 test("identical local copies and unchanged editor content never request recovery", async ({
   page,
 }) => {

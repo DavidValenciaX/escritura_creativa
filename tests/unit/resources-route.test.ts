@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   upload: vi.fn(),
   remove: vi.fn(),
   download: vi.fn(),
+  save: vi.fn(),
   writeError: null as { message: string } | null,
 }));
 
@@ -29,7 +30,10 @@ function database() {
     auth: {
       getUser: async () => ({ data: { user: mocks.user }, error: null }),
     },
-    rpc: async () => ({ data: false, error: null }),
+    rpc: (name: string, args: unknown) =>
+      name === "save_document"
+        ? { single: () => mocks.save(args) }
+        : Promise.resolve({ data: false, error: null }),
     storage: {
       from: () => ({
         upload: mocks.upload,
@@ -45,6 +49,7 @@ function database() {
             ? mocks.documents
             : mocks.publications;
       const filters: [string, unknown][] = [];
+      const memberships: [string, unknown[]][] = [];
       let changes: Record<string, unknown> | undefined;
       let inserted: Record<string, unknown> | undefined;
       let single = false;
@@ -59,6 +64,10 @@ function database() {
           return query;
         },
         is: (key: string, value: unknown) => query.eq(key, value),
+        in: (key: string, values: unknown[]) => {
+          memberships.push([key, values]);
+          return query;
+        },
         gte: () => query,
         update: (value: Record<string, unknown>) => {
           changes = value;
@@ -73,8 +82,10 @@ function database() {
           return query;
         },
         then: (resolve: (result: object) => unknown) => {
-          const selected = rows.filter((row) =>
-            filters.every(([key, value]) => row[key] === value),
+          const selected = rows.filter(
+            (row) =>
+              filters.every(([key, value]) => row[key] === value) &&
+              memberships.every(([key, values]) => values.includes(row[key])),
           );
           const error = changes || inserted ? mocks.writeError : null;
           if (!error) {
@@ -124,6 +135,67 @@ beforeEach(() => {
     data: new Blob(["image"], { type: "image/webp" }),
     error: null,
   });
+  mocks.save.mockResolvedValue({ data: {}, error: null });
+});
+
+describe("signature font references", () => {
+  it.each([
+    ["font", false, false, 200],
+    ["image", false, false, 400],
+    ["font", true, false, 400],
+    ["font", true, true, 200],
+  ])(
+    "checks kind=%s hidden=%s existing=%s",
+    async (kind, hidden, existing, status) => {
+      const docId = "33333333-3333-4333-8333-333333333333";
+      mocks.resources[0] = { ...mocks.resources[0], kind, hidden };
+      mocks.documents = [
+        {
+          id: docId,
+          owner_id: ownerId,
+          content: { type: "doc" },
+          appearance: {
+            ...defaultAppearance,
+            signatureFont: existing ? resourceId : "caveat",
+          },
+        },
+      ];
+      const draft = {
+        title: "Carta",
+        written_on: "2026-10-17",
+        content: { type: "doc" },
+        appearance: {
+          ...defaultAppearance,
+          signatureFont: resourceId,
+          signatureSize: 48,
+        },
+        signature: "Autor",
+        notebook_id: null,
+        position: 0,
+      };
+      const response = await POST(
+        new Request("https://app.example/api/documents", {
+          method: "POST",
+          headers: { origin: "https://app.example" },
+          body: JSON.stringify({
+            action: "save",
+            id: docId,
+            revision: 1,
+            draft,
+          }),
+        }),
+        { params: Promise.resolve({ path: ["documents"] }) },
+      );
+      expect(response.status).toBe(status);
+      if (status === 200)
+        expect(mocks.save).toHaveBeenCalledWith({
+          doc: docId,
+          expected_revision: 1,
+          payload: draft,
+        });
+      else expect(mocks.save).not.toHaveBeenCalled();
+    },
+  );
 });
 
 function remove(

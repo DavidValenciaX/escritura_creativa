@@ -126,9 +126,13 @@ export function PaperStyle({
   appearance: Appearance;
   token?: string;
 }) {
-  const keys = [appearance.titleFont, appearance.bodyFont].filter((k) =>
-    uuid.test(k),
-  );
+  const keys = [
+    ...new Set([
+      appearance.titleFont,
+      appearance.bodyFont,
+      appearance.signatureFont ?? appearance.titleFont,
+    ]),
+  ].filter((k) => uuid.test(k));
   return (
     <>
       {keys.map((key) => (
@@ -148,6 +152,8 @@ export function paperStyle(
     "--ink": appearance.ink,
     "--body-font": `"${family(appearance.bodyFont)}", Georgia, serif`,
     "--title-font": `"${family(appearance.titleFont)}", Georgia, serif`,
+    "--signature-font": `"${family(appearance.signatureFont ?? appearance.titleFont)}", Georgia, serif`,
+    "--signature-size": `${appearance.signatureSize ?? 32}px`,
     "--letter-size": `${appearance.fontSize}px`,
     "--letter-leading": appearance.lineHeight,
     ...(customPaper

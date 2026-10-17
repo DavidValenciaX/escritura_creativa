@@ -50,6 +50,22 @@ test("local editor saves Spanish text and appearance across reloads", async ({
   await page
     .getByRole("textbox", { name: "Firma", exact: true })
     .fill("Con todo mi cariño");
+  await page.getByLabel("Letra de la firma").selectOption("kalam");
+  await page.getByLabel("Tamaño de la firma").fill("40");
+  await page.getByLabel("Letra del título").selectOption("courier");
+  await page.getByRole("slider", { name: /^Tamaño ·/ }).fill("26");
+  await expect(page.locator(".editor-page .letter-signature")).toHaveCSS(
+    "font-family",
+    /Kalam/,
+  );
+  await expect(page.locator(".editor-page .letter-signature")).toHaveCSS(
+    "font-size",
+    "40px",
+  );
+  await expect(page.locator(".editor-page .letter-title")).toHaveCSS(
+    "font-family",
+    /Courier Prime/,
+  );
   await expect
     .poll(async () => {
       const stored = await page.evaluate(() =>
@@ -57,6 +73,8 @@ test("local editor saves Spanish text and appearance across reloads", async ({
       );
       return (
         stored?.draft.signature === "Con todo mi cariño" &&
+        stored?.draft.appearance.signatureFont === "kalam" &&
+        stored?.draft.appearance.signatureSize === 40 &&
         stored?.pending === false
       );
     })
@@ -71,12 +89,30 @@ test("local editor saves Spanish text and appearance across reloads", async ({
   await expect(
     page.getByRole("button", { name: "Rosa suave", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Letra de la firma")).toHaveValue("kalam");
+  await expect(page.getByLabel("Tamaño de la firma")).toHaveValue("40");
   await page.getByRole("button", { name: "Vista previa", exact: true }).click();
   await expect(page.locator(".screen-only .letter-title")).toHaveText(
     "Una carta para mañana",
   );
+  await expect(page.locator(".screen-only .letter-signature")).toHaveCSS(
+    "font-family",
+    /Kalam/,
+  );
+  await expect(page.locator(".screen-only .letter-signature")).toHaveCSS(
+    "font-size",
+    "40px",
+  );
   await page.emulateMedia({ media: "print" });
   await expect(page.locator(".print-only .letter-title")).toBeVisible();
+  await expect(page.locator(".print-only .letter-signature")).toHaveCSS(
+    "font-family",
+    /Kalam/,
+  );
+  await expect(page.locator(".print-only .letter-signature")).toHaveCSS(
+    "font-size",
+    "40px",
+  );
   await expect(page.locator(".topbar")).toBeHidden();
 });
 test("keyboard editing and disconnected local persistence remain available", async ({

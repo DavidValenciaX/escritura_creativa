@@ -136,6 +136,8 @@ const socialPublication = {
     paper: "lined",
     titleFont: "dancing",
     bodyFont: "lora",
+    signatureFont: "kalam",
+    signatureSize: 40,
     fontSize: 18,
     lineHeight: 1.8,
     ink: "#34312d",
@@ -293,7 +295,7 @@ test("export includes custom paper, a community font and a personal photograph",
   );
   const publication = {
     ...socialPublication,
-    appearance: { ...socialPublication.appearance, paper, titleFont: font },
+    appearance: { ...socialPublication.appearance, paper, signatureFont: font },
     content: {
       type: "doc",
       content: [

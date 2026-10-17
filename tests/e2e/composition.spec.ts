@@ -24,6 +24,7 @@ async function composition(sheet: Locator) {
             y: (bounds.top - paper.top) / scale,
             width: bounds.width / scale,
             height: bounds.height / scale,
+            fontSize: parseFloat(getComputedStyle(node).fontSize),
           },
         ];
       }),
@@ -49,6 +50,15 @@ test("all presentations preserve the complete sheet composition", async ({
   await page.evaluate(() => document.fonts.ready);
   const preview = page.locator("#composition-preview .sheet-document");
   const reference = await composition(preview);
+  await expect(preview.locator(".letter-title")).toHaveCSS(
+    "font-family",
+    /Dancing Script/,
+  );
+  await expect(preview.locator(".letter-signature")).toHaveCSS(
+    "font-family",
+    /Kalam/,
+  );
+  expect(reference.signature.fontSize).toBe(40);
   for (const width of [318, 240, 180, 96]) {
     await page.locator("#composition-thumbnail").evaluate((element, value) => {
       (element as HTMLElement).style.width = `${value + 2}px`;
@@ -76,9 +86,12 @@ test("all presentations preserve the complete sheet composition", async ({
     )
     .toBeCloseTo(318, 0);
   for (const id of ["editor", "thumbnail", "shared"]) {
-    const actual = await composition(
-      page.locator(`#composition-${id} .sheet-document`).first(),
+    const sheet = page.locator(`#composition-${id} .sheet-document`).first();
+    await expect(sheet.locator(".letter-signature")).toHaveCSS(
+      "font-family",
+      /Kalam/,
     );
+    const actual = await composition(sheet);
     for (const [name, dimensions] of Object.entries(reference)) {
       for (const [axis, value] of Object.entries(dimensions))
         expect
@@ -121,6 +134,10 @@ test("all presentations preserve the complete sheet composition", async ({
   await page.emulateMedia({ media: "print" });
   const printed = page.locator("#composition-print .sheet-document");
   await expect(printed).toBeVisible();
+  await expect(printed.locator(".letter-signature")).toHaveCSS(
+    "font-family",
+    /Kalam/,
+  );
   const pdfComposition = await composition(printed);
   for (const [name, dimensions] of Object.entries(reference))
     for (const [axis, value] of Object.entries(dimensions))

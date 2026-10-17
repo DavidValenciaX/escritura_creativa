@@ -83,6 +83,7 @@ async function validateReferences(draft: Draft, doc: Document) {
     { id: draft.appearance.paper, kind: "paper" },
     { id: draft.appearance.titleFont, kind: "font" },
     { id: draft.appearance.bodyFont, kind: "font" },
+    { id: draft.appearance.signatureFont, kind: "font" },
     ...imageIds(draft.content, "resourceId").map((id) => ({
       id,
       kind: "image",
