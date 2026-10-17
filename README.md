@@ -12,7 +12,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Abre <http://127.0.0.1:3000>. Sin credenciales, la portada, los 16 recursos iniciales y `/studio/preview` funcionan. El editor de prueba guarda un texto **solo en localStorage de ese navegador**. No simula cuentas, archivos remotos ni publicaciones. No cierres el navegador antes de que aparezca «Guardado en este navegador».
+Abre <http://127.0.0.1:3000>: la dirección principal redirige directamente a `/studio`. Sin credenciales, el estudio muestra la configuración pendiente; los 16 recursos iniciales y `/studio/preview` funcionan. El editor de prueba guarda un texto **solo en localStorage de ese navegador**. No simula cuentas, archivos remotos ni publicaciones. No cierres el navegador antes de que aparezca «Guardado en este navegador».
 
 ## Conectar Supabase
 

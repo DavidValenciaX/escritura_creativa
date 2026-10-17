@@ -1,11 +1,12 @@
 import { test, expect } from "@playwright/test";
 import sharp from "sharp";
-test("homepage and library fit the viewport and contain real initial assets", async ({
+test("homepage opens the studio and library fits the viewport with real initial assets", async ({
   page,
 }) => {
   await page.goto("/");
+  await expect(page).toHaveURL("/studio");
   await expect(
-    page.getByRole("heading", { name: "Escritura Creativa", exact: true }),
+    page.getByRole("heading", { name: "Conexión pendiente", exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(
