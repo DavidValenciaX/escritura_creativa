@@ -33,7 +33,7 @@ describe.skipIf(!ready)(
       },
       appearance: {
         paper: "cream",
-        titleFont: "caveat",
+        titleFont: "lora",
         bodyFont: "lora",
         fontSize: 18,
         lineHeight: 1.8,

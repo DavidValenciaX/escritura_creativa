@@ -19,18 +19,10 @@ export const papers = [
   { key: "white", name: "Editorial", note: "Fondo blanco liso" },
 ];
 export const fonts = [
-  { key: "caveat", name: "Caveat", family: "Caveat", kind: "Manuscrita" },
   {
     key: "dancing",
     name: "Dancing Script",
     family: "Dancing Script",
-    kind: "Manuscrita",
-  },
-  { key: "kalam", name: "Kalam", family: "Kalam", kind: "Manuscrita" },
-  {
-    key: "patrick",
-    name: "Patrick Hand",
-    family: "Patrick Hand",
     kind: "Manuscrita",
   },
   {
@@ -55,7 +47,7 @@ export const fonts = [
 ];
 export const defaultAppearance = {
   paper: "cream",
-  titleFont: "caveat",
+  titleFont: "lora",
   bodyFont: "lora",
   fontSize: 18,
   lineHeight: 1.8,
@@ -78,12 +70,18 @@ const paperKey = z
     (v) => papers.some((p) => p.key === v) || z.uuid().safeParse(v).success,
     "Papel inválido",
   );
-const fontKey = z
-  .string()
-  .refine(
-    (v) => fonts.some((f) => f.key === v) || z.uuid().safeParse(v).success,
-    "Fuente inválida",
-  );
+const retiredFonts = new Set(["caveat", "kalam", "patrick"]);
+// Keep saved drafts and browser recoveries editable after retiring a font.
+const fontKey = z.preprocess(
+  (value) =>
+    typeof value === "string" && retiredFonts.has(value) ? "lora" : value,
+  z
+    .string()
+    .refine(
+      (v) => fonts.some((f) => f.key === v) || z.uuid().safeParse(v).success,
+      "Fuente inválida",
+    ),
+);
 export const appearanceSchema = z.object({
   paper: paperKey,
   titleFont: fontKey,
@@ -275,5 +273,6 @@ export function referencesResource(
   );
 }
 export function family(key: string) {
+  if (retiredFonts.has(key)) return "Lora";
   return fonts.find((f) => f.key === key)?.family ?? `resource-${key}`;
 }

@@ -198,7 +198,7 @@ describe("body font references", () => {
           content: { type: "doc" },
           appearance: {
             ...defaultAppearance,
-            bodyFont: existing ? resourceId : "caveat",
+            bodyFont: existing ? resourceId : "lora",
           },
         },
       ];

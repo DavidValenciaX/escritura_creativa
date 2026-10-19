@@ -13,13 +13,10 @@
     "supabase": "supabase"
   },
   "dependencies": {
-    "@fontsource/caveat": "^5.2.0",
     "@fontsource/courier-prime": "^5.2.0",
     "@fontsource/dancing-script": "^5.2.0",
     "@fontsource/eb-garamond": "^5.2.0",
-    "@fontsource/kalam": "^5.2.0",
     "@fontsource/lora": "^5.2.0",
-    "@fontsource/patrick-hand": "^5.2.0",
     "@fontsource/special-elite": "^5.2.0",
     "@next/env": "^16.4.0",
     "@supabase/ssr": "^0.8.0",

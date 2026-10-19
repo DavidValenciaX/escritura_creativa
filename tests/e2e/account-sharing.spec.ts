@@ -284,7 +284,7 @@ test("export includes custom paper, a community font and a personal photograph",
     route.fulfill({
       contentType: "font/woff2",
       body: readFileSync(
-        "node_modules/@fontsource/caveat/files/caveat-latin-400-normal.woff2",
+        "node_modules/@fontsource/lora/files/lora-latin-400-normal.woff2",
       ),
     }),
   );

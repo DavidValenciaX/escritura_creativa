@@ -1118,7 +1118,7 @@ input[type="range"] {
   position: relative;
 }
 .resource-preview .sample-script {
-  font-family: "Caveat";
+  font-family: "Lora", Georgia, serif;
   font-size: 35px;
   color: #777a61;
 }

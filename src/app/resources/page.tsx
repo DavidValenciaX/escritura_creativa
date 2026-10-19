@@ -19,7 +19,13 @@ export default async function Page() {
       throw new Error(
         "No se pudo abrir la biblioteca. Comprueba las migraciones de Supabase.",
       );
-    resources = data ?? [];
+    resources = (data ?? []).filter(
+      (resource) =>
+        !resource.builtin_key ||
+        builtins.some(
+          (builtin) => builtin.builtin_key === resource.builtin_key,
+        ),
+    );
   }
   return (
     <Shell active="/resources">

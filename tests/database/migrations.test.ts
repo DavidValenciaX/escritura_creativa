@@ -12,7 +12,7 @@ describe("migrations and PostgreSQL RLS", () => {
     doc = randomUUID();
   const appearance = {
     paper: "cream",
-    titleFont: "caveat",
+    titleFont: "lora",
     bodyFont: "lora",
     fontSize: 18,
     lineHeight: 1.8,
@@ -88,7 +88,7 @@ describe("migrations and PostgreSQL RLS", () => {
           "select count(*)::int as count from resources",
         )
       ).rows[0].count,
-    ).toBe(16);
+    ).toBe(13);
     expect(
       (
         await pg.query<{ count: number }>(

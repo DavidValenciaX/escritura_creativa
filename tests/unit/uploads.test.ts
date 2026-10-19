@@ -38,7 +38,7 @@ describe("upload validation", () => {
     const font = readFileSync(
       join(
         process.cwd(),
-        "node_modules/@fontsource/caveat/files/caveat-latin-400-normal.woff2",
+        "node_modules/@fontsource/lora/files/lora-latin-400-normal.woff2",
       ),
     );
     expect(verifyFile(font, "font", "font/woff2").extension).toBe("woff2");

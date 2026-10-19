@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import "@fontsource/caveat/latin-400.css";
 import "@fontsource/dancing-script/latin-400.css";
-import "@fontsource/kalam/latin-400.css";
-import "@fontsource/patrick-hand/latin-400.css";
 import "@fontsource/courier-prime/latin-400.css";
 import "@fontsource/special-elite/latin-400.css";
 import "@fontsource/lora/latin-400.css";

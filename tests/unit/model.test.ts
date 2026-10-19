@@ -3,7 +3,10 @@ import {
   appearanceSchema,
   defaultAppearance,
   draftSchema,
+  family,
+  fonts,
   imageIds,
+  recoverySchema,
   referencesResource,
   validateContent,
   withoutSignature,
@@ -11,6 +14,26 @@ import {
 } from "../../src/lib/model";
 const id = "a72b0f89-aedd-4ad2-a5ac-92e6d6137b07";
 describe("untrusted editor content", () => {
+  it.each(["caveat", "kalam", "patrick"])(
+    "recovers saved texts using retired font %s without losing their content",
+    (font) => {
+      const draft = {
+        title: "Una carta guardada",
+        written_on: "2026-10-19",
+        content: { type: "doc", content: [{ type: "paragraph" }] },
+        appearance: { ...defaultAppearance, titleFont: font, bodyFont: font },
+        signature: "",
+        notebook_id: null,
+        position: 0,
+      };
+      expect(recoverySchema.parse(draft)).toEqual({
+        ...draft,
+        appearance: defaultAppearance,
+      });
+      expect(family(font)).toBe("Lora");
+      expect(fonts.some((item) => item.key === font)).toBe(false);
+    },
+  );
   it("moves legacy signatures into editable body paragraphs without duplication", () => {
     const original = {
       content: {

@@ -27,8 +27,12 @@ test("homepage opens the studio and library fits the viewport with real initial 
   ).toBeVisible();
   await page.getByRole("button", { name: "Tipografías", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Caveat", exact: true }),
+    page.getByRole("heading", { name: "Lora", exact: true }),
   ).toBeVisible();
+  for (const name of ["Caveat", "Kalam", "Patrick Hand"])
+    await expect(page.getByRole("heading", { name, exact: true })).toHaveCount(
+      0,
+    );
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -55,7 +59,15 @@ test("local editor saves Spanish text and appearance across reloads", async ({
   await expect(page.getByLabel("Letra de la firma")).toHaveCount(0);
   await expect(page.getByLabel("Tamaño de la firma")).toHaveCount(0);
   await page.getByLabel("Letra del título").selectOption("courier");
-  await page.getByLabel("Letra del cuerpo").selectOption("kalam");
+  for (const label of ["Letra del título", "Letra del cuerpo"])
+    await expect(
+      page
+        .getByLabel(label)
+        .locator(
+          'option[value="caveat"], option[value="kalam"], option[value="patrick"]',
+        ),
+    ).toHaveCount(0);
+  await page.getByLabel("Letra del cuerpo").selectOption("garamond");
   await page.getByLabel("Tamaño del cuerpo").fill("26");
   await expect
     .poll(async () => {
@@ -63,7 +75,7 @@ test("local editor saves Spanish text and appearance across reloads", async ({
         JSON.parse(localStorage.getItem("ec:preview") ?? "null"),
       );
       return (
-        stored?.draft.appearance.bodyFont === "kalam" &&
+        stored?.draft.appearance.bodyFont === "garamond" &&
         stored?.draft.appearance.fontSize === 26 &&
         stored?.pending === false
       );
@@ -76,7 +88,7 @@ test("local editor saves Spanish text and appearance across reloads", async ({
   await expect(body).toContainText("¡Hola, corazón!");
   await editorOptions(page, "Apariencia");
   await expect(page.getByLabel("Letra del título")).toHaveValue("courier");
-  await expect(page.getByLabel("Letra del cuerpo")).toHaveValue("kalam");
+  await expect(page.getByLabel("Letra del cuerpo")).toHaveValue("garamond");
   await expect(page.getByLabel("Tamaño del cuerpo")).toHaveValue("26");
   await expect(
     page.getByRole("button", { name: "Rosa suave", exact: true }),
@@ -88,7 +100,7 @@ test("local editor saves Spanish text and appearance across reloads", async ({
   );
   await expect(page.locator(".screen-only .letter-content")).toHaveCSS(
     "font-family",
-    /Kalam/,
+    /EB Garamond/,
   );
   await expect(page.locator(".screen-only .letter-content")).toHaveCSS(
     "font-size",
@@ -99,7 +111,7 @@ test("local editor saves Spanish text and appearance across reloads", async ({
   await expect(page.locator(".print-only .letter-title")).toBeVisible();
   await expect(page.locator(".print-only .letter-content")).toHaveCSS(
     "font-family",
-    /Kalam/,
+    /EB Garamond/,
   );
   await expect(page.locator(".print-only .letter-content")).toHaveCSS(
     "font-size",
@@ -187,7 +199,7 @@ test("long letter with images prints across multiple A4 pages", async ({
     },
     appearance: {
       paper: "lined",
-      titleFont: "caveat",
+      titleFont: "lora",
       bodyFont: "lora",
       fontSize: 18,
       lineHeight: 1.8,
