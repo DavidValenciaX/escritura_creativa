@@ -168,7 +168,7 @@ test("export uses the same paper, date, title and body as the reading view", asy
     "base64",
   );
   const metadata = await sharp(data).metadata();
-  expect(metadata).toMatchObject({ format: "png", width: 2160, height: 2700 });
+  expect(metadata).toMatchObject({ format: "png", width: 2160, height: 2160 });
   await expect(
     page.getByRole("link", { name: "Ver imagen 1 a tamaño completo" }),
   ).toHaveAttribute("href", /^blob:/);
@@ -182,7 +182,7 @@ test("export uses the same paper, date, title and body as the reading view", asy
     .locator("#reference .letter")
     .screenshot({ scale: "css" });
   const expected = await sharp(reference)
-    .resize(2160, 2700)
+    .resize(2160, 2160)
     .removeAlpha()
     .raw()
     .toBuffer();
@@ -336,85 +336,238 @@ test("export includes custom paper, a community font and a personal photograph",
     `test-results/custom-export-${test.info().project.name}.png`,
   );
 });
-test("long exports paginate without dividing a photograph", async ({
+for (const [shape, width, height] of [
+  ["square", 650, 650],
+  ["portrait", 400, 1400],
+  ["landscape", 1000, 400],
+] as const) {
+  test(`long square exports keep a ${shape} photograph whole`, async ({
+    page,
+  }) => {
+    const photo = "44444444-4444-4444-8444-444444444444";
+    const image = await sharp({
+      create: { width, height, channels: 3, background: "#2090cc" },
+    })
+      .png()
+      .toBuffer();
+    await page.route(`**/api/media/${photo}`, (route) =>
+      route.fulfill({ contentType: "image/png", body: image }),
+    );
+    const publication = {
+      ...socialPublication,
+      content: {
+        type: "doc",
+        content: [
+          ...Array.from({ length: 45 }, (_, i) => ({
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: `Párrafo ${i + 1}: áéíóú, ñ y signos ¿? ¡!`,
+              },
+            ],
+          })),
+          {
+            type: "image",
+            attrs: { assetId: photo, alt: "Fotografía completa" },
+          },
+        ],
+      },
+    };
+    await page.route("**/api/share-images", (route) =>
+      route.fulfill({
+        json: {
+          title: publication.title,
+          text: "Texto largo",
+          document: publication,
+        },
+      }),
+    );
+    await page.goto(fixture("social"));
+    await page.getByRole("button", { name: "Preparar imágenes" }).click();
+    const cards = page.locator(".social-cards img");
+    await expect(cards.first()).toBeVisible({ timeout: 20000 });
+    expect(await cards.count()).toBeGreaterThan(1);
+    let photos = 0;
+    for (const src of await cards.evaluateAll((nodes) =>
+      nodes.map((node) => (node as HTMLImageElement).src),
+    )) {
+      const buffer = Buffer.from(src.split(",")[1], "base64");
+      const { data, info } = await sharp(buffer)
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      expect(info.width).toBe(2160);
+      expect(info.height).toBe(2160);
+      const marginTop = await sharp(buffer)
+        .extract({ left: 0, top: 0, width: 2160, height: 120 })
+        .raw()
+        .toBuffer();
+      const marginBottom = await sharp(buffer)
+        .extract({ left: 0, top: 2040, width: 2160, height: 120 })
+        .raw()
+        .toBuffer();
+      for (const pixels of [marginTop, marginBottom]) {
+        let ink = 0;
+        for (let i = 0; i < pixels.length; i += info.channels)
+          if (pixels[i] < 120 && pixels[i + 1] < 120 && pixels[i + 2] < 120)
+            ink++;
+        expect(ink).toBe(0);
+      }
+      let blue = 0,
+        left = info.width,
+        right = 0,
+        top = info.height,
+        bottom = 0;
+      for (let i = 0; i < data.length; i += info.channels) {
+        if (data[i] < 80 && data[i + 1] > 90 && data[i + 2] > 160) {
+          blue++;
+          const x = (i / info.channels) % info.width;
+          const y = Math.floor(i / info.channels / info.width);
+          left = Math.min(left, x);
+          right = Math.max(right, x);
+          top = Math.min(top, y);
+          bottom = Math.max(bottom, y);
+        }
+      }
+      if (blue) {
+        expect(blue).toBeGreaterThan(200000);
+        expect((right - left + 1) / (bottom - top + 1)).toBeCloseTo(
+          width / height,
+          2,
+        );
+        photos++;
+        await sharp(buffer).toFile(
+          `test-results/whole-${shape}-${test.info().project.name}.png`,
+        );
+      }
+    }
+    expect(photos).toBe(1);
+  });
+}
+
+test("square pagination fits rotated and inline photographs without changing the source", async ({
   page,
 }) => {
-  const photo = "44444444-4444-4444-8444-444444444444";
-  const image = await sharp({
-    create: { width: 650, height: 650, channels: 3, background: "#2090cc" },
-  })
-    .png()
-    .toBuffer();
-  await page.route(`**/api/media/${photo}`, (route) =>
-    route.fulfill({ contentType: "image/png", body: image }),
+  await page.goto(fixture("pagination"));
+  const photos = await Promise.all(
+    [
+      [400, 1400],
+      [1000, 400],
+    ].map(
+      async ([width, height]) =>
+        `data:image/png;base64,${(
+          await sharp({
+            create: { width, height, channels: 3, background: "#2090cc" },
+          })
+            .png()
+            .toBuffer()
+        ).toString("base64")}`,
+    ),
   );
-  const publication = {
-    ...socialPublication,
-    content: {
-      type: "doc",
-      content: [
-        ...Array.from({ length: 45 }, (_, i) => ({
-          type: "paragraph",
-          content: [
-            { type: "text", text: `Párrafo ${i + 1}: áéíóú, ñ y signos ¿? ¡!` },
-          ],
-        })),
-        {
-          type: "image",
-          attrs: { assetId: photo, alt: "Fotografía completa" },
-        },
-      ],
-    },
-  };
-  await page.route("**/api/share-images", (route) =>
-    route.fulfill({
-      json: {
-        title: publication.title,
-        text: "Texto largo",
-        document: publication,
-      },
-    }),
-  );
-  await page.goto(fixture("social"));
-  await page.getByRole("button", { name: "Preparar imágenes" }).click();
-  const cards = page.locator(".social-cards img");
-  await expect(cards.first()).toBeVisible({ timeout: 20000 });
-  expect(await cards.count()).toBeGreaterThan(1);
-  let photos = 0;
-  for (const src of await cards.evaluateAll((nodes) =>
-    nodes.map((node) => (node as HTMLImageElement).src),
-  )) {
-    const buffer = Buffer.from(src.split(",")[1], "base64");
-    const { data, info } = await sharp(buffer)
-      .removeAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-    expect(info.width).toBe(2160);
-    expect(info.height).toBe(2700);
-    const marginTop = await sharp(buffer)
-      .extract({ left: 0, top: 0, width: 2160, height: 120 })
-      .raw()
-      .toBuffer();
-    const marginBottom = await sharp(buffer)
-      .extract({ left: 0, top: 2580, width: 2160, height: 120 })
-      .raw()
-      .toBuffer();
-    for (const pixels of [marginTop, marginBottom]) {
-      let ink = 0;
-      for (let i = 0; i < pixels.length; i += info.channels)
-        if (pixels[i] < 120 && pixels[i + 1] < 120 && pixels[i + 2] < 120)
-          ink++;
-      expect(ink).toBe(0);
+  const result = await page.evaluate(async (photos) => {
+    const host = document.getElementById("reference")!;
+    host.style.display = "block";
+    const original = host.querySelector<HTMLElement>(".letter")!;
+    const content = original.querySelector(".letter-content")!;
+    content.replaceChildren();
+    for (let i = 0; i < 5; i++) {
+      const figure = document.createElement("figure");
+      const image = document.createElement("img");
+      image.src = photos[i % 2];
+      image.alt = `Foto ${i}`;
+      figure.appendChild(image);
+      if (i < 2) {
+        const caption = document.createElement("figcaption");
+        caption.textContent = `Descripción ${i}`;
+        figure.appendChild(caption);
+      } else {
+        figure.className = "floating-image letter-floating-image";
+        Object.assign(figure.style, {
+          left: "10cqw",
+          top: i === 4 ? "95cqw" : "30cqw",
+          width: i === 4 ? "35cqw" : "100cqw",
+          aspectRatio: String(i % 2 ? 2.5 : 400 / 1400),
+          transform: `rotate(${i === 4 ? 0 : i % 2 ? -35 : 30}deg)`,
+        });
+      }
+      content.appendChild(figure);
+      await image.decode();
     }
-    let blue = 0;
-    for (let i = 0; i < data.length; i += info.channels)
-      if (data[i] < 80 && data[i + 1] > 90 && data[i + 2] > 160) blue++;
-    if (blue) {
-      expect(blue).toBeGreaterThan(700000);
-      photos++;
+    await document.fonts.ready;
+    const before = original.innerHTML;
+    const sourceSizes = Array.from(
+      content.querySelectorAll("img"),
+      (image) => ({
+        width: image.getBoundingClientRect().width,
+        ratio: image.naturalWidth / image.naturalHeight,
+      }),
+    );
+    const { paginateForTest } = window as typeof window & {
+      paginateForTest: (letter: HTMLElement, height: number) => HTMLElement[];
+    };
+    const pages = paginateForTest(original, 820);
+    const figures = pages.flatMap((page, index) => {
+      const sheet = page.getBoundingClientRect();
+      return Array.from(page.querySelectorAll("figure"), (figure) => {
+        const bounds = figure.getBoundingClientRect();
+        const image = figure.querySelector("img")!;
+        const style = getComputedStyle(image);
+        return {
+          index,
+          name: image.alt,
+          left: bounds.left - sheet.left,
+          right: bounds.right - sheet.left,
+          top: bounds.top - sheet.top,
+          bottom: bounds.bottom - sheet.top,
+          ratio: parseFloat(style.width) / parseFloat(style.height),
+          width: parseFloat(style.width),
+          caption: figure.querySelector("figcaption")?.textContent,
+          rotation: figure.style.transform,
+        };
+      });
+    });
+    const unchanged = original.innerHTML === before;
+    pages.forEach((page) => page.remove());
+    let limitError = "";
+    const distant = content.querySelector<HTMLElement>(
+      ".letter-floating-image",
+    )!;
+    distant.style.top = "1000cqw";
+    const children = original.parentElement!.childElementCount;
+    try {
+      paginateForTest(original, 820);
+    } catch (error) {
+      limitError = (error as Error).message;
     }
+    return {
+      figures,
+      sourceSizes,
+      unchanged,
+      limitError,
+      cleanedUp: original.parentElement!.childElementCount === children,
+    };
+  }, photos);
+  expect(result.unchanged).toBe(true);
+  expect(result.figures).toHaveLength(5);
+  expect(new Set(result.figures.map((figure) => figure.name)).size).toBe(5);
+  for (const figure of result.figures) {
+    const i = Number(figure.name.split(" ")[1]);
+    expect(figure.left).toBeGreaterThanOrEqual(59);
+    expect(figure.right).toBeLessThanOrEqual(761);
+    expect(figure.top).toBeGreaterThanOrEqual(54);
+    expect(figure.bottom).toBeLessThanOrEqual(760);
+    expect(figure.ratio).toBeCloseTo(result.sourceSizes[i].ratio, 3);
+    if (i < 2) expect(figure.caption).toBe(`Descripción ${i}`);
+    if (i === 0) expect(figure.width).toBeLessThan(result.sourceSizes[i].width);
+    if (i === 1)
+      expect(figure.width).toBeCloseTo(result.sourceSizes[i].width, 1);
+    if (i === 2) expect(figure.rotation).toBe("rotate(30deg)");
+    if (i === 3) expect(figure.rotation).toBe("rotate(-35deg)");
+    if (i === 4) expect(figure.index).toBe(1);
   }
-  expect(photos).toBe(1);
+  expect(result.limitError).toContain("máximo de diez imágenes");
+  expect(result.cleanedUp).toBe(true);
 });
 
 test("rich paragraphs, marked text and lists paginate without clipped or missing lines", async ({
@@ -453,7 +606,7 @@ test("rich paragraphs, marked text and lists paginate without clipped or missing
         margin: number,
       ) => HTMLElement[];
     };
-    const pages: HTMLElement[] = paginateLetter(original, 1025, 55);
+    const pages: HTMLElement[] = paginateLetter(original, 820, 55);
     const fragments = pages.map((page, i) => {
       page.dataset.testPage = String(i);
       const bounds = page.getBoundingClientRect();
@@ -495,7 +648,7 @@ test("rich paragraphs, marked text and lists paginate without clipped or missing
   expect(images).toHaveLength(geometry.fragments.length);
   for (const [i, fragment] of geometry.fragments.entries()) {
     expect(
-      fragment.rows.every((row) => row.top >= 53 && row.bottom <= 966),
+      fragment.rows.every((row) => row.top >= 53 && row.bottom <= 761),
     ).toBe(true);
     await page.locator("[data-test-page]").evaluateAll((nodes) =>
       nodes.forEach((node) => {
@@ -521,7 +674,7 @@ test("rich paragraphs, marked text and lists paginate without clipped or missing
     );
     const expected = await sharp(reference).removeAlpha().raw().toBuffer();
     const actual = await sharp(buffer)
-      .resize(820, 1025)
+      .resize(820, 820)
       .removeAlpha()
       .raw()
       .toBuffer();
@@ -529,7 +682,7 @@ test("rich paragraphs, marked text and lists paginate without clipped or missing
     // between a native screenshot and a downsampled high-resolution SVG.
     const paintedLines = (pixels: Buffer) => {
       const lines: { top: number; bottom: number }[] = [];
-      for (let y = 0; y < 1025; y++) {
+      for (let y = 0; y < 820; y++) {
         let ink = 0;
         for (let x = 40; x < 780; x++) {
           const offset = (y * 820 + x) * 3;

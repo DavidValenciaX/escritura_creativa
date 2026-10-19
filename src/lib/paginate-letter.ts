@@ -17,6 +17,7 @@ export function paginateLetter(
   const width = letter.getBoundingClientRect().width;
   const host = letter.parentElement!;
   const safety = 6;
+  const contentHeight = pageHeight - margin * 2 - safety;
   function tidy() {
     for (const element of Array.from(page.parents.values()).reverse()) {
       if (!element.hasChildNodes()) element.remove();
@@ -176,6 +177,36 @@ export function paginateLetter(
       accepted(source);
       return;
     }
+    // Keep an inline photograph and its caption together. Only resize the copy,
+    // after trying a fresh page, so a short remaining space never shrinks it.
+    const photo = clone.matches("figure") ? clone.querySelector("img") : null;
+    if (photo) {
+      if (page.hasContent) {
+        clone.remove();
+        nextPage();
+        parent(path).appendChild(clone);
+      }
+      if (!fits(clone)) {
+        const bounds = photo.getBoundingClientRect();
+        const overflow =
+          clone.getBoundingClientRect().bottom -
+          (page.element.getBoundingClientRect().bottom - margin - safety);
+        const height = bounds.height - overflow - 1;
+        if (height > 0) {
+          Object.assign(photo.style, {
+            width: `${bounds.width * (height / bounds.height)}px`,
+            height: "auto",
+            maxHeight: "none",
+          });
+        }
+      }
+      if (!fits(clone))
+        throw new Error(
+          "Una imagen y su descripción no caben en una página. Reduce la descripción e inténtalo de nuevo.",
+        );
+      accepted(source);
+      return;
+    }
     const height = clone.getBoundingClientRect().height;
     clone.remove();
     const container = ["UL", "OL", "BLOCKQUOTE"].includes(source.tagName);
@@ -215,28 +246,42 @@ export function paginateLetter(
     tidy();
     // Floating images use sheet coordinates, independently of their text anchor.
     // Place each image once on the corresponding exported sheet, keeping it whole.
-    const contentHeight = pageHeight - margin * 2 - safety;
     const origin = letter.getBoundingClientRect();
     for (const image of letter.querySelectorAll<HTMLElement>(
       ".letter-floating-image",
     )) {
       const bounds = image.getBoundingClientRect();
-      if (bounds.height > contentHeight)
-        throw new Error(
-          "Una imagen es demasiado alta para exportarla. Reduce su tamaño e inténtalo de nuevo.",
-        );
+      const scale = Math.min(
+        1,
+        (width - SHEET_PADDING_X * 2) / bounds.width,
+        contentHeight / bounds.height,
+      );
+      const height = bounds.height * scale;
       const offset = Math.max(0, bounds.top - origin.top - margin);
       let index = Math.floor(offset / contentHeight);
       let top = margin + (offset % contentHeight);
-      if (top + bounds.height > pageHeight - margin - safety) {
+      if (top + height > pageHeight - margin - safety) {
         index++;
         top = margin;
       }
       while (pages.length <= index) nextPage();
       const clone = image.cloneNode(true) as HTMLElement;
-      // Account for the rotated bounding box relative to the unrotated element.
-      clone.style.top = `${top + (bounds.height - image.offsetHeight) / 2}px`;
+      clone.style.width = `${parseFloat(getComputedStyle(image).width) * scale}px`;
       pages[index].element.appendChild(clone);
+      // Move the rotated bounding box, rather than the unrotated element, into
+      // the usable page area. Preserve the saved angle and aspect ratio.
+      const placed = clone.getBoundingClientRect();
+      const sheet = pages[index].element.getBoundingClientRect();
+      const left = Math.max(
+        SHEET_PADDING_X,
+        Math.min(
+          width - SHEET_PADDING_X - placed.width,
+          bounds.left - origin.left,
+        ),
+      );
+      const style = getComputedStyle(clone);
+      clone.style.left = `${parseFloat(style.left) + sheet.left + left - placed.left}px`;
+      clone.style.top = `${parseFloat(style.top) + sheet.top + top - placed.top}px`;
     }
     return pages.map((p) => p.element);
   } catch (error) {

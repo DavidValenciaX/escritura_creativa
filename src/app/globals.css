@@ -2074,7 +2074,7 @@ body:has(.notebook-reader[open]) {
 .social-export .letter {
   width: 820px;
   max-width: none;
-  min-height: 1025px;
+  min-height: 820px;
   padding: 55px 60px;
   margin: 0;
   box-shadow: none;
@@ -2254,7 +2254,7 @@ body:has(.notebook-reader[open]) {
   }
 }
 .social-export .sheet-canvas .sheet-document {
-  min-height: 1025px;
+  min-height: 820px;
 }
 @media print {
   .sheet-frame {

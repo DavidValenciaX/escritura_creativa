@@ -46,7 +46,7 @@ export async function exportLetter(letter: HTMLElement) {
   }
   const bounds = letter.getBoundingClientRect();
   const scale = 2160 / bounds.width;
-  const pageHeight = 2700 / scale;
+  const pageHeight = bounds.width;
   const margin = 55;
   const options = {
     pixelRatio: scale,

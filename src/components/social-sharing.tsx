@@ -87,7 +87,7 @@ export function SocialSharing({ documentId }: { documentId: string }) {
                     src={src}
                     alt={`Imagen ${i + 1} de ${result.title}`}
                     width={320}
-                    height={400}
+                    height={320}
                   />
                 </a>
                 <figcaption>

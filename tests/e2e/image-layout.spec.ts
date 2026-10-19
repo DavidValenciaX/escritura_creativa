@@ -404,7 +404,7 @@ test("floating rotated images remain visible in shared image exports", async ({
   );
   expect(await sharp(png).metadata()).toMatchObject({
     width: 2160,
-    height: 2700,
+    height: 2160,
   });
   await sharp(png).toFile(
     `test-results/floating-export-${test.info().project.name}.png`,
