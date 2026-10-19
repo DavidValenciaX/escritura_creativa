@@ -6,6 +6,8 @@
   --color-accent: #5e6d51;
 }
 :root {
+  /* Preserve the authored palette when browsers offer automatic darkening. */
+  color-scheme: only light;
   --bg: #f8f7f2;
   --ink: #343831;
   --muted: #7d8074;
