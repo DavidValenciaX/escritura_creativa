@@ -33,6 +33,8 @@ import {
   Printer,
   Share2,
   ArrowLeft,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Modal } from "./ui";
 import { appDialog } from "@/lib/dialog";
@@ -45,6 +47,8 @@ export function EditorTools({
   blocked,
   localMode,
   shareDisabled,
+  soundEnabled,
+  onToggleSound,
   appearance,
   details,
   onPreview,
@@ -58,6 +62,8 @@ export function EditorTools({
   blocked: boolean;
   localMode: boolean;
   shareDisabled: boolean;
+  soundEnabled: boolean;
+  onToggleSound: () => void;
   appearance: ReactNode;
   details: ReactNode;
   onPreview: () => void;
@@ -414,6 +420,19 @@ export function EditorTools({
           )}
           {panel === "Opciones del editor" && (
             <div className="editor-menu">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={soundEnabled}
+                aria-label="Sonido de máquina de escribir"
+                onClick={onToggleSound}
+              >
+                {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                <span>Sonido de máquina de escribir</span>
+                <span className="editor-sound-state">
+                  {soundEnabled ? "Activado" : "Desactivado"}
+                </span>
+              </button>
               {!preview && (
                 <>
                   <button onClick={() => setPanel("Formato")}>

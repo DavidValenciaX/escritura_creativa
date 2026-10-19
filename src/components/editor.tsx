@@ -25,6 +25,7 @@ import { ErrorMessage, Modal } from "./ui";
 import { Sharing } from "./sharing";
 import { printLetter } from "@/lib/print";
 import { stableJson } from "@/lib/stable-json";
+import { useTypewriterSound } from "@/lib/use-typewriter-sound";
 const asDraft = (doc: Document): Draft =>
   withoutSignature({
     title: doc.title,
@@ -101,6 +102,9 @@ export function WritingEditor({
   const [actionBusy, setActionBusy] = useState(false);
   const initialized = useRef(false);
   const [hydrated, setHydrated] = useState(false);
+  const typewriter = useTypewriterSound(
+    hydrated && !preview && !actionBusy && !imageModal && !sharing && !remote,
+  );
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -510,6 +514,8 @@ export function WritingEditor({
         blocked={!hydrated || actionBusy || imageModal || sharing || !!remote}
         localMode={localMode}
         shareDisabled={localMode || conflict || actionBusy}
+        soundEnabled={typewriter.enabled}
+        onToggleSound={typewriter.toggle}
         onBack={() => void leave()}
         onPreview={() => setPreview(!preview)}
         onImage={() => setImageModal(true)}
@@ -735,7 +741,7 @@ export function WritingEditor({
           <Letter {...draft} />
         </div>
       ) : (
-        <div className="editor-layout">
+        <div className="editor-layout" ref={typewriter.root}>
           <div className="edit-panel">
             <PaperStyle appearance={draft.appearance} />
             <SheetFrame>
