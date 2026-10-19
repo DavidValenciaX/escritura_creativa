@@ -1,3 +1,4 @@
+import { editorOptions } from "./editor-helpers";
 import { test, expect } from "@playwright/test";
 import sharp from "sharp";
 test("homepage opens the studio and library fits the viewport with real initial assets", async ({
@@ -43,6 +44,7 @@ test("local editor saves Spanish text and appearance across reloads", async ({
     .fill("Una carta para mañana");
   const body = page.getByRole("textbox", { name: "Cuerpo del texto" });
   await body.fill("¡Hola, corazón! Estas palabras se quedan aquí.");
+  await editorOptions(page, "Apariencia");
   await page.getByRole("button", { name: "Rosa suave", exact: true }).click();
   await expect(page.getByRole("status")).toContainText(
     "Guardado en este navegador",
@@ -72,12 +74,14 @@ test("local editor saves Spanish text and appearance across reloads", async ({
     page.getByRole("textbox", { name: "Título del texto" }),
   ).toHaveValue("Una carta para mañana");
   await expect(body).toContainText("¡Hola, corazón!");
+  await editorOptions(page, "Apariencia");
   await expect(page.getByLabel("Letra del título")).toHaveValue("courier");
   await expect(page.getByLabel("Letra del cuerpo")).toHaveValue("kalam");
   await expect(page.getByLabel("Tamaño del cuerpo")).toHaveValue("26");
   await expect(
     page.getByRole("button", { name: "Rosa suave", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
+  await editorOptions(page);
   await page.getByRole("button", { name: "Vista previa", exact: true }).click();
   await expect(page.locator(".screen-only .letter-title")).toHaveText(
     "Una carta para mañana",
@@ -143,6 +147,7 @@ test("resource selection and accessible preview dialog work", async ({
     .getByRole("dialog")
     .getByRole("link", { name: "Usar en un texto", exact: true })
     .click();
+  await editorOptions(page, "Apariencia");
   await expect(
     page.getByRole("button", { name: "Papel antiguo", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -201,6 +206,7 @@ test("long letter with images prints across multiple A4 pages", async ({
     draft,
   );
   await page.goto("/studio/preview");
+  await editorOptions(page);
   await page.getByRole("button", { name: "Vista previa", exact: true }).click();
   await expect(
     page.locator(".screen-only .letter").getByRole("img"),

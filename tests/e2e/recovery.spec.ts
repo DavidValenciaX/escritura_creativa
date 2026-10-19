@@ -1,3 +1,4 @@
+import { editorOptions } from "./editor-helpers";
 import { test, expect, type Page } from "@playwright/test";
 import {
   defaultAppearance,
@@ -186,6 +187,7 @@ test("download preserves a real recovery, and recovering saves it once", async (
   await seed(page, draft);
   await open(page);
   await expect(banner(page)).toBeVisible();
+  await editorOptions(page);
   await page.getByRole("button", { name: "Publicar y compartir" }).click();
   expect((await stored(page)).draft.title).toBe("Trabajo pendiente");
   expect(api.saves()).toBe(0);

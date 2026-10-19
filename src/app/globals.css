@@ -2274,3 +2274,188 @@ body:has(.notebook-reader[open]) {
     break-before: page;
   }
 }
+
+/* Writing occupies the app viewport; composition inside the sheet stays canonical. */
+@media screen {
+  .app-shell:has(.focus-editor) > .topbar,
+  .app-shell:has(.focus-editor) > .mobile-navigation,
+  .app-shell:has(.focus-editor) > .app-body > .sidebar {
+    display: none;
+  }
+  .app-shell:has(.focus-editor) > .app-body {
+    display: block;
+    min-height: 100dvh;
+  }
+  .app-shell:has(.focus-editor) .main-content {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  .focus-editor {
+    min-height: 100dvh;
+    width: 100%;
+    position: relative;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .focus-editor .editor-layout {
+    display: block;
+  }
+  :where(.focus-editor) {
+    background-color: #fffefa;
+  }
+  .focus-editor .edit-panel {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+  }
+  .focus-editor .sheet-frame {
+    overflow: clip;
+  }
+  .focus-editor > .editor-layout .sheet-document,
+  .focus-editor > .screen-only .sheet-document {
+    min-height: max(560px, calc(100dvh / var(--sheet-scale, 1)));
+  }
+  .focus-editor .letter-frame {
+    margin: 0;
+    max-width: none;
+  }
+  .focus-editor-notice:not(:empty) {
+    margin: 0 auto;
+    padding: 16px 76px 16px 20px;
+    max-width: 820px;
+  }
+  .focus-editor .tiptap {
+    scroll-margin-block: 72px;
+  }
+}
+.focus-editor-toggle {
+  position: fixed;
+  top: calc(
+    var(--editor-viewport-top, 0px) + max(12px, env(safe-area-inset-top, 0px))
+  );
+  right: max(12px, env(safe-area-inset-right, 0px));
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #d9d7ca;
+  border-radius: 50%;
+  background: #fffefaed;
+  color: #343831;
+  box-shadow: 0 2px 12px #0000000d;
+}
+.selection-toolbar {
+  position: fixed;
+  z-index: 65;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffefa;
+  color: #343831;
+  box-shadow: 0 4px 24px #0002;
+  transform: translateX(-50%);
+}
+.selection-toolbar[hidden] {
+  display: none;
+}
+.selection-toolbar .icon-button,
+.editor-panel-backdrop .icon-button,
+.editor-panel-backdrop button,
+.editor-panel-backdrop select,
+.editor-panel-backdrop input {
+  min-width: 44px;
+  min-height: 44px;
+}
+.editor-panel-backdrop {
+  color: #343831;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 64px 12px 12px;
+}
+.editor-panel-backdrop .modal {
+  width: 360px;
+  max-height: calc(var(--editor-viewport-height, 100dvh) - 88px);
+  padding: 20px;
+}
+.editor-panel-backdrop .modal > header {
+  margin-bottom: 12px;
+}
+.editor-panel-backdrop .modal h2 {
+  font-size: 22px;
+}
+.editor-panel-back {
+  margin-bottom: 12px;
+}
+.editor-menu {
+  display: grid;
+  gap: 4px;
+}
+.editor-menu button,
+.editor-format-tools .icon-button {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  height: auto;
+  padding: 10px 12px;
+  text-align: left;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.editor-menu button:hover,
+.editor-format-tools .icon-button:hover {
+  background: var(--warm);
+}
+.editor-format-tools .icon-button.selected {
+  background: #e3e8d9;
+}
+.editor-format-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.editor-format-tools .icon-button {
+  gap: 8px;
+  font-size: 12px;
+}
+.editor-format-tools svg {
+  flex-shrink: 0;
+}
+.editor-appearance .paper-swatch {
+  min-height: 44px;
+}
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+  .editor-panel-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .selection-toolbar {
+    transform: translate(-50%, calc(-1 * env(safe-area-inset-bottom, 0px)));
+  }
+  .editor-panel-backdrop .modal {
+    width: 100%;
+    max-height: min(80dvh, calc(var(--editor-viewport-height, 100dvh) - 16px));
+    border-radius: 18px 18px 0 0;
+    padding: 20px max(20px, env(safe-area-inset-right, 0px))
+      max(20px, env(safe-area-inset-bottom, 0px))
+      max(20px, env(safe-area-inset-left, 0px));
+    overscroll-behavior: contain;
+  }
+}
+@media print {
+  .focus-editor {
+    background: none !important;
+    min-height: 0;
+    padding: 0;
+  }
+  .editor-panel-backdrop {
+    display: none !important;
+  }
+}

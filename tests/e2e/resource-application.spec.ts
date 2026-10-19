@@ -1,3 +1,4 @@
+import { editorOptions } from "./editor-helpers";
 import { test, expect, type Page } from "@playwright/test";
 import {
   defaultAppearance,
@@ -122,6 +123,7 @@ for (const kind of ["paper", "font"] as const) {
       document.appearance[field],
     );
     // Publishing reloads studio resources while the editor is still open.
+    await editorOptions(page);
     await page
       .getByRole("button", { name: "Publicar y compartir", exact: true })
       .click();
@@ -138,9 +140,11 @@ for (const kind of ["paper", "font"] as const) {
       resource.id,
     );
     await page.getByRole("button", { name: "Cerrar", exact: true }).click();
+    await editorOptions(page);
     await page.getByRole("button", { name: "Mi estudio", exact: true }).click();
     await expect(page.getByText(notice)).toHaveCount(0);
     await open(page, "Segundo escrito");
+    await editorOptions(page);
     await page
       .getByRole("button", { name: "Publicar y compartir", exact: true })
       .click();
@@ -160,6 +164,7 @@ for (const kind of ["paper", "font"] as const) {
     await page.reload();
     await expect(page.getByText(notice)).toHaveCount(0);
     await open(page, "Segundo escrito");
+    await editorOptions(page);
     await page.getByRole("button", { name: "Mi estudio", exact: true }).click();
     expect(api.saves).toEqual([document.id]);
   });
@@ -178,9 +183,11 @@ test("a new text consumes the resource and stale session selections cannot chang
     .getByRole("button", { name: "Escribir un texto", exact: true })
     .click();
   await expect.poll(() => api.documents[2]?.appearance.paper).toBe(resource.id);
+  await editorOptions(page);
   await page.getByRole("button", { name: "Mi estudio", exact: true }).click();
   await page.reload();
   await open(page, "Segundo escrito");
+  await editorOptions(page);
   await page.getByRole("button", { name: "Mi estudio", exact: true }).click();
   expect(api.documents[1].appearance).toEqual(defaultAppearance);
   expect(api.saves).toEqual([api.documents[2].id]);
@@ -192,10 +199,12 @@ test("uploaded resources are never selected just because there is no pending cho
   const api = await setup(page);
   await page.goto(fixture);
   await open(page, "Segundo escrito");
+  await editorOptions(page, "Apariencia");
   await page.getByRole("button", { name: "Marfil", exact: true }).waitFor();
   await expect(
     page.getByRole("button", { name: "Marfil", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
+  await editorOptions(page);
   await page.getByRole("button", { name: "Mi estudio", exact: true }).click();
   expect(api.documents[1].appearance).toEqual(defaultAppearance);
   expect(api.saves).toEqual([]);

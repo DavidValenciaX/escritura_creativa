@@ -7,29 +7,7 @@ import { imageBottom, newImageLayout } from "@/lib/image-layout";
 import { letterDate } from "@/lib/sheet-layout";
 import { SheetFrame, SheetField } from "./sheet-frame";
 import TextAlign from "@tiptap/extension-text-align";
-import {
-  ArrowLeft,
-  Eye,
-  PenLine,
-  Printer,
-  Share2,
-  Check,
-  WifiOff,
-  Bold,
-  Italic,
-  List,
-  ListOrdered,
-  Quote,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  ImagePlus,
-  Heading2,
-  Link as LinkIcon,
-  Undo2,
-  Redo2,
-  Underline,
-} from "lucide-react";
+import { EditorTools } from "./editor-tools";
 import {
   recoverySchema,
   appearanceSchema,
@@ -47,7 +25,6 @@ import { ErrorMessage, Modal } from "./ui";
 import { Sharing } from "./sharing";
 import { printLetter } from "@/lib/print";
 import { stableJson } from "@/lib/stable-json";
-import { appDialog } from "@/lib/dialog";
 const asDraft = (doc: Document): Draft =>
   withoutSignature({
     title: doc.title,
@@ -513,305 +490,40 @@ export function WritingEditor({
     (r) => r.kind === "paper" && !r.builtin_key,
   );
   return (
-    <section>
-      <div className="editor-head screen-only">
-        <button className="text-button" onClick={() => void leave()}>
-          <ArrowLeft size={16} /> Mi estudio
-        </button>
-        <div className="actions">
-          <span className="save-status" role="status">
-            {status.startsWith("Sin") ? (
-              <WifiOff size={13} />
-            ) : (
-              <Check size={13} />
-            )}{" "}
-            {status}
-          </span>
-          <button className="button" onClick={() => setPreview(!preview)}>
-            {preview ? <PenLine size={15} /> : <Eye size={15} />}{" "}
-            {preview ? "Editar" : "Vista previa"}
-          </button>
-          <button className="button" onClick={() => void printLetter()}>
-            <Printer size={15} /> PDF
-          </button>
-          <button
-            className="button primary"
-            disabled={localMode || conflict || actionBusy}
-            onClick={async () => {
-              setActionBusy(true);
-              try {
-                const saved = await save();
-                if (saved) setSharing(true);
-              } finally {
-                setActionBusy(false);
-              }
-            }}
-          >
-            <Share2 size={15} /> Publicar y compartir
-          </button>
-        </div>
-      </div>
-      {localMode && (
-        <div className="notice screen-only">
-          Editor local de prueba. El texto se guarda solo en este navegador; las
-          cuentas, imágenes y publicaciones requieren Supabase.
-          <a href="/studio">Configurar el estudio</a>
-        </div>
-      )}
-      {recovery && (
-        <div className="notice screen-only">
-          <span>Hay un borrador local que no llegó a guardarse.</span>
-          <div className="recovery-controls">
-            <button
-              className="button"
-              onClick={() => {
-                if (recoveryRevision.current !== revision.current) {
-                  conflictRef.current = true;
-                  setConflict(true);
-                  setStatus("La recuperación tiene una revisión anterior");
-                }
-                loadDraft(recovery);
-              }}
-            >
-              Recuperar borrador
-            </button>
-            <button
-              className="text-button"
-              onClick={() => downloadRecovery(recovery)}
-            >
-              Descargar recuperación
-            </button>
-            <button
-              className="text-button"
-              onClick={() => {
-                const saved = asDraft(initial);
-                loadDraft(saved);
-                store(saved, false);
-                if (!conflictRef.current) setStatus("Guardado");
-              }}
-            >
-              Usar versión guardada
-            </button>
-          </div>
-        </div>
-      )}
-      {conflict && (
-        <div className="notice screen-only">
-          <span>
-            Otra pestaña cambió este texto. El autoguardado está detenido para
-            conservar tus cambios.
-          </span>
-          <button className="button" onClick={() => void inspectRemote()}>
-            Revisar versiones
-          </button>
-          <button
-            className="text-button"
-            onClick={() => downloadRecovery(draft)}
-          >
-            Descargar mi borrador
-          </button>
-        </div>
-      )}
-      <div className="screen-only">
-        <ErrorMessage message={error} />
-      </div>
-      {preview ? (
-        <div className="screen-only">
-          <Letter {...draft} />
-        </div>
-      ) : (
-        <div className="editor-layout">
-          <div className="edit-panel">
-            <div
-              className="editor-toolbar"
-              role="toolbar"
-              aria-label="Formato del texto"
-            >
-              {[
-                {
-                  label: "Negrita",
-                  icon: Bold,
-                  active: editor?.isActive("bold"),
-                  run: () => editor?.chain().focus().toggleBold().run(),
-                },
-                {
-                  label: "Cursiva",
-                  icon: Italic,
-                  active: editor?.isActive("italic"),
-                  run: () => editor?.chain().focus().toggleItalic().run(),
-                },
-                {
-                  label: "Subrayado",
-                  icon: Underline,
-                  active: editor?.isActive("underline"),
-                  run: () => editor?.chain().focus().toggleUnderline().run(),
-                },
-                {
-                  label: "Encabezado",
-                  icon: Heading2,
-                  active: editor?.isActive("heading", { level: 2 }),
-                  run: () =>
-                    editor?.chain().focus().toggleHeading({ level: 2 }).run(),
-                },
-                {
-                  label: "Lista",
-                  icon: List,
-                  active: editor?.isActive("bulletList"),
-                  run: () => editor?.chain().focus().toggleBulletList().run(),
-                },
-                {
-                  label: "Lista numerada",
-                  icon: ListOrdered,
-                  active: editor?.isActive("orderedList"),
-                  run: () => editor?.chain().focus().toggleOrderedList().run(),
-                },
-                {
-                  label: "Cita",
-                  icon: Quote,
-                  active: editor?.isActive("blockquote"),
-                  run: () => editor?.chain().focus().toggleBlockquote().run(),
-                },
-                {
-                  label: "Alinear a la izquierda",
-                  icon: AlignLeft,
-                  run: () => editor?.chain().focus().setTextAlign("left").run(),
-                },
-                {
-                  label: "Centrar",
-                  icon: AlignCenter,
-                  run: () =>
-                    editor?.chain().focus().setTextAlign("center").run(),
-                },
-                {
-                  label: "Alinear a la derecha",
-                  icon: AlignRight,
-                  run: () =>
-                    editor?.chain().focus().setTextAlign("right").run(),
-                },
-              ].map(({ label, icon: Icon, run, active }) => (
-                <button
-                  key={label}
-                  type="button"
-                  title={label}
-                  aria-label={label}
-                  aria-pressed={!!active}
-                  className={`icon-button ${active ? "selected" : ""}`}
-                  onClick={run}
-                >
-                  <Icon size={16} />
-                </button>
-              ))}
-              <span className="toolbar-separator" />
-              <button
-                className="icon-button"
-                title="Añadir enlace"
-                aria-label="Añadir enlace"
-                onClick={async () => {
-                  if (!editor) return;
-                  const { from, to } = editor.state.selection;
-                  const result = await appDialog.fire<string>({
-                    titleText: "Añadir enlace",
-                    text: "Pega una dirección web. Deja el campo vacío para quitar el enlace.",
-                    input: "text",
-                    inputLabel: "Dirección del enlace",
-                    inputPlaceholder: "https://…",
-                    inputValue: editor.getAttributes("link").href ?? "",
-                    inputAttributes: {
-                      autocapitalize: "off",
-                      autocomplete: "url",
-                      inputmode: "url",
-                      spellcheck: "false",
-                    },
-                    showCancelButton: true,
-                    confirmButtonText: "Guardar enlace",
-                    inputValidator: (value) => {
-                      if (value && !/^https?:\/\//i.test(value))
-                        return "El enlace debe comenzar con https:// o http://.";
-                    },
-                  });
-                  if (!result.isConfirmed || editor.isDestroyed) return;
-                  const chain = editor
-                    .chain()
-                    .focus()
-                    .setTextSelection({ from, to });
-                  if (result.value) chain.setLink({ href: result.value }).run();
-                  else chain.unsetLink().run();
-                }}
-              >
-                <LinkIcon size={16} />
-              </button>
-              <button
-                className="icon-button"
-                aria-label="Añadir imagen"
-                disabled={localMode}
-                onClick={() => setImageModal(true)}
-              >
-                <ImagePlus size={16} />
-              </button>
-              <button
-                className="icon-button"
-                aria-label="Deshacer"
-                onClick={() => editor?.chain().focus().undo().run()}
-              >
-                <Undo2 size={16} />
-              </button>
-              <button
-                className="icon-button"
-                aria-label="Rehacer"
-                onClick={() => editor?.chain().focus().redo().run()}
-              >
-                <Redo2 size={16} />
-              </button>
-            </div>
-            <PaperStyle appearance={draft.appearance} />
-            <SheetFrame>
-              <div
-                className={`editor-page sheet-document paper-${draft.appearance.paper}`}
-                style={paperStyle(draft.appearance)}
-              >
-                <div
-                  className="image-sheet-extent"
-                  aria-hidden="true"
-                  style={{ height: `${imageBottom(draft.content)}cqw` }}
-                />
-                <label className="editor-date letter-date">
-                  <span className="sr-only">Fecha del texto</span>
-                  <span>{letterDate(draft.written_on)}</span>
-                  <input
-                    type="date"
-                    disabled={actionBusy || !hydrated}
-                    value={draft.written_on}
-                    onChange={(e) => change("written_on", e.target.value)}
-                    onBlur={() => {
-                      if (!draft.written_on)
-                        change(
-                          "written_on",
-                          new Date().toLocaleDateString("en-CA", {
-                            timeZone: "America/Bogota",
-                          }),
-                        );
-                    }}
-                  />
-                </label>
-                <SheetField
-                  className="letter-title"
-                  label="Título del texto"
-                  disabled={actionBusy || !hydrated}
-                  maxLength={200}
-                  value={draft.title}
-                  onChange={(value) => change("title", value)}
-                  onBlur={() => {
-                    if (!draft.title.trim()) change("title", "Sin título");
-                  }}
-                  placeholder="Título del texto"
-                />
-                <EditorContent editor={editor} />
-                <div className="letter-end">✦</div>
-              </div>
-            </SheetFrame>
-          </div>
-          <aside className="design-panel">
-            <h3>Formato del texto</h3>
+    <section
+      className={`focus-editor paper-${draft.appearance.paper}`}
+      style={paperStyle(draft.appearance)}
+      onClick={(event) => {
+        if (preview || actionBusy || !hydrated) return;
+        const target = event.target;
+        if (
+          target instanceof HTMLElement &&
+          (target === event.currentTarget ||
+            target.matches(".editor-page, .sheet-frame, .sheet-canvas"))
+        )
+          editor?.commands.focus();
+      }}
+    >
+      <EditorTools
+        editor={editor}
+        preview={preview}
+        blocked={!hydrated || actionBusy || imageModal || sharing || !!remote}
+        localMode={localMode}
+        shareDisabled={localMode || conflict || actionBusy}
+        onBack={() => void leave()}
+        onPreview={() => setPreview(!preview)}
+        onImage={() => setImageModal(true)}
+        onPrint={() => void printLetter()}
+        onShare={() => {
+          setActionBusy(true);
+          void save()
+            .then((saved) => {
+              if (saved) setSharing(true);
+            })
+            .finally(() => setActionBusy(false));
+        }}
+        appearance={
+          <div className="editor-appearance">
             <p className="eyebrow">PAPEL</p>
             <div className="paper-picker">
               {papers.map((p) => (
@@ -914,6 +626,18 @@ export function WritingEditor({
                 onChange={(e) => appearance("ink", e.target.value)}
               />
             </label>
+          </div>
+        }
+        details={
+          <div>
+            <p className="save-status">{status}</p>
+            {localMode && (
+              <p className="notice">
+                Editor local de prueba. El texto se guarda solo en este
+                navegador; las cuentas, imágenes y publicaciones requieren
+                Supabase. <a href="/studio">Configurar el estudio</a>
+              </p>
+            )}
             <label>
               Cuaderno
               <select
@@ -940,7 +664,126 @@ export function WritingEditor({
               <br />
               Tu borrador es privado. Publica una versión cuando esté listo.
             </p>
-          </aside>
+          </div>
+        }
+      />
+      <span className="sr-only" role="status">
+        {status}
+      </span>
+      {status.startsWith("Sin") && (
+        <div className="notice focus-editor-notice screen-only">{status}</div>
+      )}
+      {recovery && (
+        <div className="notice focus-editor-notice screen-only">
+          <span>Hay un borrador local que no llegó a guardarse.</span>
+          <div className="recovery-controls">
+            <button
+              className="button"
+              onClick={() => {
+                if (recoveryRevision.current !== revision.current) {
+                  conflictRef.current = true;
+                  setConflict(true);
+                  setStatus("La recuperación tiene una revisión anterior");
+                }
+                loadDraft(recovery);
+              }}
+            >
+              Recuperar borrador
+            </button>
+            <button
+              className="text-button"
+              onClick={() => downloadRecovery(recovery)}
+            >
+              Descargar recuperación
+            </button>
+            <button
+              className="text-button"
+              onClick={() => {
+                const saved = asDraft(initial);
+                loadDraft(saved);
+                store(saved, false);
+                if (!conflictRef.current) setStatus("Guardado");
+              }}
+            >
+              Usar versión guardada
+            </button>
+          </div>
+        </div>
+      )}
+      {conflict && (
+        <div className="notice focus-editor-notice screen-only">
+          <span>
+            Otra pestaña cambió este texto. El autoguardado está detenido para
+            conservar tus cambios.
+          </span>
+          <button className="button" onClick={() => void inspectRemote()}>
+            Revisar versiones
+          </button>
+          <button
+            className="text-button"
+            onClick={() => downloadRecovery(draft)}
+          >
+            Descargar mi borrador
+          </button>
+        </div>
+      )}
+      <div className="focus-editor-notice screen-only">
+        <ErrorMessage message={error} />
+      </div>
+      {preview ? (
+        <div className="screen-only">
+          <Letter {...draft} />
+        </div>
+      ) : (
+        <div className="editor-layout">
+          <div className="edit-panel">
+            <PaperStyle appearance={draft.appearance} />
+            <SheetFrame>
+              <div
+                className={`editor-page sheet-document paper-${draft.appearance.paper}`}
+                style={paperStyle(draft.appearance)}
+              >
+                <div
+                  className="image-sheet-extent"
+                  aria-hidden="true"
+                  style={{ height: `${imageBottom(draft.content)}cqw` }}
+                />
+                <label className="editor-date letter-date">
+                  <span className="sr-only">Fecha del texto</span>
+                  <span>{letterDate(draft.written_on)}</span>
+                  <input
+                    type="date"
+                    disabled={actionBusy || !hydrated}
+                    value={draft.written_on}
+                    onChange={(e) => change("written_on", e.target.value)}
+                    onBlur={() => {
+                      if (!draft.written_on)
+                        change(
+                          "written_on",
+                          new Date().toLocaleDateString("en-CA", {
+                            timeZone: "America/Bogota",
+                          }),
+                        );
+                    }}
+                  />
+                </label>
+                <SheetField
+                  className="letter-title"
+                  label="Título del texto"
+                  disabled={actionBusy || !hydrated}
+                  maxLength={200}
+                  value={draft.title}
+                  onChange={(value) => change("title", value)}
+                  onBlur={() => {
+                    if (!draft.title.trim()) change("title", "Sin título");
+                  }}
+                  placeholder="Título del texto"
+                />
+                <EditorContent editor={editor} />
+                <div className="letter-end">✦</div>
+              </div>
+            </SheetFrame>
+          </div>
         </div>
       )}
       <div className="print-only">

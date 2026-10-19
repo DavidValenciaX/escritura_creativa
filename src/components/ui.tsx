@@ -19,14 +19,20 @@ export function Modal({
   title,
   children,
   onClose,
+  presentation = "dialog",
+  restoreFocus,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  presentation?: "dialog" | "editor";
+  restoreFocus?: () => void;
 }) {
   const root = useRef<HTMLElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
+  const restore = useRef(restoreFocus);
+  restore.current = restoreFocus;
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const priorOverflow = document.body.style.overflow;
@@ -60,11 +66,15 @@ export function Modal({
     return () => {
       document.removeEventListener("keydown", key);
       document.body.style.overflow = priorOverflow;
-      previous?.focus();
+      if (restore.current) restore.current();
+      else if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
   }, []);
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div
+      className={`modal-backdrop ${presentation === "editor" ? "editor-panel-backdrop" : ""}`}
+      onClick={onClose}
+    >
       <section
         ref={root}
         className="modal"

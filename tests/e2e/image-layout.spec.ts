@@ -1,3 +1,4 @@
+import { editorOptions } from "./editor-helpers";
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import sharp from "sharp";
 import {
@@ -114,6 +115,7 @@ for (const source of ["upload", "community"] as const) {
   }) => {
     const api = await setup(page);
     await open(page);
+    await editorOptions(page);
     await page
       .getByRole("button", { name: "Añadir imagen", exact: true })
       .click();
@@ -144,6 +146,7 @@ for (const source of ["upload", "community"] as const) {
   }) => {
     const api = await setup(page);
     await open(page);
+    await editorOptions(page);
     await page
       .getByRole("button", { name: "Añadir imagen", exact: true })
       .click();
@@ -231,10 +234,12 @@ for (const source of ["upload", "community"] as const) {
         ),
       )
       .toBeGreaterThan(5);
+    await editorOptions(page, "Formato");
     await page.getByRole("button", { name: "Deshacer", exact: true }).click();
     await expect
       .poll(() => images(api.saved().content)[0]?.attrs?.layout)
       .toEqual(scaled);
+    await editorOptions(page, "Formato");
     await page.getByRole("button", { name: "Rehacer", exact: true }).click();
     await expect
       .poll(() =>
@@ -253,6 +258,7 @@ for (const source of ["upload", "community"] as const) {
       "style",
       /rotate\(/,
     );
+    await editorOptions(page);
     await page
       .getByRole("button", { name: "Vista previa", exact: true })
       .click();
