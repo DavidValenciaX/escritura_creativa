@@ -1,6 +1,32 @@
 import { test, expect } from "@playwright/test";
 import { editorOptions } from "./editor-helpers";
 
+test("blank paper focuses the editor during the click so the first keystroke is kept", async ({
+  page,
+}) => {
+  await page.goto("/studio/preview");
+  const body = page.getByRole("textbox", { name: "Cuerpo del texto" });
+  await expect(body).toBeEditable();
+  await page
+    .getByRole("button", { name: "Opciones del editor", exact: true })
+    .focus();
+
+  // Inspect focus in the same event turn, before any animation frame can run.
+  const focusedDuringClick = await page
+    .locator(".editor-page")
+    .evaluate((paper) => {
+      (paper as HTMLElement).click();
+      return document.activeElement === paper.querySelector(".tiptap");
+    });
+  expect(focusedDuringClick).toBe(true);
+  await page.keyboard.type("Una hoja para escribir.");
+  await expect(body).toHaveText("Una hoja para escribir.");
+
+  const title = page.getByRole("textbox", { name: "Título del texto" });
+  await title.click();
+  await expect(title).toBeFocused();
+});
+
 test("writing fills the app with one control and restores navigation on leaving", async ({
   page,
   isMobile,
@@ -26,6 +52,9 @@ test("writing fills the app with one control and restores navigation on leaving"
     (await editor.locator(".editor-layout .sheet-frame").boundingBox())!.height,
   ).toBeGreaterThanOrEqual(page.viewportSize()!.height - 1);
   await editor.click({ position: { x: 20, y: 350 } });
+  await expect(
+    page.getByRole("textbox", { name: "Cuerpo del texto" }),
+  ).toBeFocused();
   await page.keyboard.type("Una hoja para escribir.");
   await expect(
     page.getByRole("textbox", { name: "Cuerpo del texto" }),

@@ -504,8 +504,11 @@ export function WritingEditor({
           target instanceof HTMLElement &&
           (target === event.currentTarget ||
             target.matches(".editor-page, .sheet-frame, .sheet-canvas"))
-        )
-          editor?.commands.focus();
+        ) {
+          // The focus command waits for an animation frame on desktop, which
+          // can lose the first keystroke after clicking blank paper.
+          editor?.view.focus();
+        }
       }}
     >
       <EditorTools
