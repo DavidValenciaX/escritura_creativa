@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { TypewriterAudio } from "./typewriter-audio";
+import { preloadTypewriterSound, TypewriterAudio } from "./typewriter-audio";
 
 const STORAGE_KEY = "ec:typewriter-sound:v1";
 const typingInputs = new Set([
@@ -23,11 +23,13 @@ export function useTypewriterSound(active: boolean) {
       enabledRef.current = value;
       setEnabled(value);
       audio.current?.setEnabled(value);
+      if (value) preloadTypewriterSound();
     };
     try {
       update(localStorage.getItem(STORAGE_KEY) !== "false");
     } catch {
       // Keep the default if storage is unavailable.
+      preloadTypewriterSound();
     }
     const storage = (event: StorageEvent) => {
       if (event.key === STORAGE_KEY || event.key === null)
@@ -146,6 +148,7 @@ export function useTypewriterSound(active: boolean) {
     enabledRef.current = next;
     setEnabled(next);
     audio.current?.setEnabled(next);
+    if (next) preloadTypewriterSound();
     try {
       localStorage.setItem(STORAGE_KEY, String(next));
     } catch {

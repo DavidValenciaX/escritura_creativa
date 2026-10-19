@@ -3,7 +3,12 @@ import { editorOptions } from "./editor-helpers";
 
 declare global {
   interface Window {
-    typewriterAudio: { starts: number; contexts: number; closed: number };
+    typewriterAudio: {
+      starts: number;
+      contexts: number;
+      closed: number;
+      sample: { duration: number; playbackRate: number } | null;
+    };
   }
 }
 
@@ -16,7 +21,12 @@ const strikes = (page: Page) =>
 test.beforeEach(async ({ page }) => {
   // Observe real Web Audio playback rather than substituting the sound engine.
   await page.addInitScript(() => {
-    window.typewriterAudio = { starts: 0, contexts: 0, closed: 0 };
+    window.typewriterAudio = {
+      starts: 0,
+      contexts: 0,
+      closed: 0,
+      sample: null,
+    };
     const NativeAudioContext = window.AudioContext;
     window.AudioContext = class extends NativeAudioContext {
       constructor() {
@@ -28,6 +38,10 @@ test.beforeEach(async ({ page }) => {
         const start = source.start.bind(source);
         source.start = (...args: Parameters<typeof start>) => {
           window.typewriterAudio.starts++;
+          window.typewriterAudio.sample = {
+            duration: source.buffer!.duration,
+            playbackRate: source.playbackRate.value,
+          };
           start(...args);
         };
         return source;
@@ -60,6 +74,9 @@ test("default sound, accessible switch, persistence and reactivation", async ({
   await page.keyboard.press("Enter");
   await page.keyboard.press("Backspace");
   await expect.poll(() => strikes(page)).toBe(12);
+  const sample = await page.evaluate(() => window.typewriterAudio.sample);
+  expect(sample!.duration).toBeCloseTo(0.39, 3);
+  expect(sample!.playbackRate).toBe(1);
   await page.getByRole("textbox", { name: "Título del texto" }).click();
   await page.keyboard.type("Carta");
   await expect.poll(() => strikes(page)).toBe(17);
@@ -255,4 +272,21 @@ test("preference is shared with another editor tab", async ({
   await soundSwitch(other).click();
   await expect(soundSwitch(page)).toBeChecked();
   await other.close();
+});
+
+test("a missing recording does not interrupt writing or play a substitute", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/audio/typewriter-key.wav", (route) =>
+    route.fulfill({ status: 404, body: "" }),
+  );
+  await page.reload();
+  const body = page.getByRole("textbox", { name: "Cuerpo del texto" });
+  await body.click();
+  await page.keyboard.type("Puedo seguir escribiendo.");
+  await expect(body).toHaveText("Puedo seguir escribiendo.");
+  expect(await strikes(page)).toBe(0);
+  expect(errors).toEqual([]);
 });

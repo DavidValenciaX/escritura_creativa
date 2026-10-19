@@ -1,7 +1,30 @@
-// One reusable buffer/context per editor, created only after user interaction.
+const SAMPLE_URL = "/audio/typewriter-key.wav";
+const VOLUME = 0.32;
+let sampleData: Promise<ArrayBuffer> | undefined;
+
+function loadSample() {
+  sampleData ??= fetch(SAMPLE_URL)
+    .then((response) => {
+      if (!response.ok) throw new Error("Typewriter recording unavailable");
+      return response.arrayBuffer();
+    })
+    .catch((error: unknown) => {
+      sampleData = undefined;
+      throw error;
+    });
+  return sampleData;
+}
+
+// Fetch ahead of the first keystroke without creating or starting an AudioContext.
+export function preloadTypewriterSound() {
+  void loadSample().catch(() => {});
+}
+
+// Real Hermes Precisa 305 recording; see public/audio/README.md for provenance.
 export class TypewriterAudio {
   private context: AudioContext;
-  private buffer: AudioBuffer;
+  private buffer: AudioBuffer | null = null;
+  private ready: Promise<void>;
   private output: GainNode;
   private enabled = true;
   private disposed = false;
@@ -9,25 +32,17 @@ export class TypewriterAudio {
   constructor() {
     this.context = new AudioContext();
     this.output = this.context.createGain();
+    this.output.gain.value = VOLUME;
     this.output.connect(this.context.destination);
-    this.buffer = this.context.createBuffer(
-      1,
-      Math.ceil(this.context.sampleRate * 0.095),
-      this.context.sampleRate,
-    );
-    const samples = this.buffer.getChannelData(0);
-    for (let i = 0; i < samples.length; i++) {
-      const t = i / this.context.sampleRate;
-      // A sharp strike, metallic body, then the softer return of the mechanism.
-      const strike = (Math.random() * 2 - 1) * Math.exp(-t * 210);
-      const metal =
-        (Math.sin(2 * Math.PI * 1850 * t) +
-          0.45 * Math.sin(2 * Math.PI * 3270 * t)) *
-        Math.exp(-t * 100);
-      const release =
-        t > 0.028 ? (Math.random() * 2 - 1) * Math.exp(-(t - 0.028) * 160) : 0;
-      samples[i] = (strike * 0.6 + metal * 0.3 + release * 0.22) * 0.16;
-    }
+    this.ready = loadSample()
+      // decodeAudioData consumes its ArrayBuffer, so keep the cached original.
+      .then((data) =>
+        this.disposed ? null : this.context.decodeAudioData(data.slice(0)),
+      )
+      .then((buffer) => {
+        if (!this.disposed) this.buffer = buffer;
+      })
+      .catch(() => {});
   }
 
   unlock() {
@@ -39,7 +54,7 @@ export class TypewriterAudio {
     this.enabled = enabled;
     if (!this.disposed)
       this.output.gain.setValueAtTime(
-        enabled ? 1 : 0,
+        enabled ? VOLUME : 0,
         this.context.currentTime,
       );
   }
@@ -52,6 +67,7 @@ export class TypewriterAudio {
       if (
         this.disposed ||
         !this.enabled ||
+        !this.buffer ||
         this.context.state !== "running" ||
         performance.now() - requestedAt > 100
       )
@@ -59,7 +75,6 @@ export class TypewriterAudio {
       try {
         const source = this.context.createBufferSource();
         source.buffer = this.buffer;
-        source.playbackRate.value = 0.94 + Math.random() * 0.12;
         source.connect(this.output);
         source.onended = () => source.disconnect();
         source.start();
@@ -67,10 +82,12 @@ export class TypewriterAudio {
         // Audio is optional; it must never interrupt writing.
       }
     };
-    if (this.context.state === "running") strike();
+    if (this.buffer && this.context.state === "running") strike();
     else
-      void this.context
-        .resume()
+      void Promise.all([
+        this.ready,
+        this.context.state === "running" ? undefined : this.context.resume(),
+      ])
         .then(strike)
         .catch(() => {});
   }
@@ -78,6 +95,7 @@ export class TypewriterAudio {
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
+    this.buffer = null;
     this.output.disconnect();
     void this.context.close().catch(() => {});
   }
