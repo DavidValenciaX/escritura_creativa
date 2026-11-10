@@ -35,9 +35,12 @@ import {
   ArrowLeft,
   Volume2,
   VolumeX,
+  CornerDownLeft,
+  Pilcrow,
 } from "lucide-react";
 import { Modal } from "./ui";
 import { appDialog } from "@/lib/dialog";
+import { convertSelectedBreaks } from "@/lib/convert-breaks";
 
 type Panel = "Opciones del editor" | "Formato" | "Apariencia" | "Detalles";
 
@@ -100,6 +103,8 @@ export function EditorTools({
             right: editor.isActive({ textAlign: "right" }),
             undo: editor.can().undo(),
             redo: editor.can().redo(),
+            softBreak: convertSelectedBreaks("soft")(editor.state),
+            paragraphBreak: convertSelectedBreaks("paragraph")(editor.state),
           }
         : null,
   });
@@ -471,13 +476,64 @@ export function EditorTools({
             </div>
           )}
           {panel === "Formato" && (
-            <div
-              role="toolbar"
-              aria-label="Formato del texto"
-              className="editor-format-tools"
-            >
-              {buttons(false)}
-            </div>
+            <>
+              <fieldset className="editor-breaks">
+                <legend>Tipo de salto</legend>
+                <p className="muted">
+                  Selecciona texto que incluya los saltos que quieres cambiar, o
+                  coloca el cursor junto a uno.
+                </p>
+                {(
+                  [
+                    [
+                      "soft",
+                      "Convertir a salto suave",
+                      "Shift + Enter",
+                      CornerDownLeft,
+                      state?.softBreak,
+                    ],
+                    [
+                      "paragraph",
+                      "Convertir a salto de párrafo",
+                      "Enter",
+                      Pilcrow,
+                      state?.paragraphBreak,
+                    ],
+                  ] as const
+                ).map(([target, label, shortcut, Icon, enabled]) => (
+                  <button
+                    key={target}
+                    type="button"
+                    className="button"
+                    aria-label={label}
+                    disabled={!editor || blocked || !enabled}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      if (!editor || !editor.isEditable) return;
+                      convertSelectedBreaks(target)(
+                        editor.state,
+                        editor.view.dispatch,
+                      );
+                      setPanel(null);
+                      editor.view.focus();
+                    }}
+                  >
+                    <Icon size={18} />
+                    <span>
+                      {label}
+                      <small>{shortcut}</small>
+                    </span>
+                  </button>
+                ))}
+              </fieldset>
+              <div
+                role="toolbar"
+                aria-label="Formato del texto"
+                className="editor-format-tools"
+              >
+                {buttons(false)}
+              </div>
+            </>
           )}
           {panel === "Apariencia" && appearance}
           {panel === "Detalles" && details}

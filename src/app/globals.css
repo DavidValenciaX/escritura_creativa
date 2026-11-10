@@ -2460,6 +2460,36 @@ body:has(.notebook-reader[open]) {
   margin: 0;
   font-size: 12px;
 }
+.editor-breaks {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.editor-breaks legend {
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.editor-breaks .muted {
+  margin: 0;
+  font-size: 12px;
+}
+.editor-breaks .button {
+  justify-content: flex-start;
+  text-align: left;
+}
+.editor-breaks svg {
+  flex-shrink: 0;
+}
+.editor-breaks small {
+  display: block;
+  color: var(--muted);
+  font-weight: 400;
+}
 @media (max-width: 700px), (hover: none) and (pointer: coarse) {
   .editor-panel-backdrop {
     align-items: flex-end;
