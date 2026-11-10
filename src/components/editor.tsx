@@ -612,21 +612,50 @@ export function WritingEditor({
                 onChange={(e) => appearance("fontSize", Number(e.target.value))}
               />
             </label>
-            <label>
-              Interlineado
-              <select
-                value={draft.appearance.lineHeight}
-                onChange={(e) =>
-                  appearance("lineHeight", Number(e.target.value))
-                }
-              >
-                {[1.2, 1.5, 1.8, 2, 2.5].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <fieldset className="editor-spacing">
+              <legend>Espaciado</legend>
+              <label>
+                Interlineado
+                <select
+                  value={draft.appearance.lineHeight}
+                  onChange={(e) =>
+                    appearance("lineHeight", Number(e.target.value))
+                  }
+                >
+                  {[1.2, 1.5, 1.8, 2, 2.5].map((n) => (
+                    <option key={n} value={n}>
+                      {n.toLocaleString("es-CO")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {(
+                [
+                  ["paragraphSpacingBefore", "Antes del párrafo"],
+                  ["paragraphSpacingAfter", "Después del párrafo"],
+                ] as const
+              ).map(([name, label]) => (
+                <label key={name}>
+                  {label}
+                  <select
+                    value={draft.appearance[name]}
+                    onChange={(e) => appearance(name, Number(e.target.value))}
+                  >
+                    {[0, 0.25, 0.5, 0.75, 1, 1.5, 2].map((n) => (
+                      <option key={n} value={n}>
+                        {n === 0
+                          ? "Sin espacio"
+                          : `${n.toLocaleString("es-CO")} × tamaño de letra`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+              <p className="muted">
+                Enter crea un párrafo. Shift + Enter cambia de línea dentro del
+                mismo párrafo.
+              </p>
+            </fieldset>
             <label>
               Tinta
               <input

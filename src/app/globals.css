@@ -909,7 +909,8 @@ input[type="range"] {
 }
 .tiptap p {
   line-height: inherit;
-  margin: 0 0 1em;
+  margin: var(--paragraph-spacing-before, 0) 0
+    var(--paragraph-spacing-after, 1em);
 }
 .tiptap h1,
 .tiptap h2,
@@ -1020,7 +1021,8 @@ input[type="range"] {
 }
 .letter-content p {
   line-height: inherit;
-  margin: 0 0 1em;
+  margin: var(--paragraph-spacing-before, 0) 0
+    var(--paragraph-spacing-after, 1em);
 }
 .letter-content h2,
 .letter-content h3,
@@ -2145,7 +2147,8 @@ body:has(.notebook-reader[open]) {
 .sheet-document :is(.tiptap, .letter-content) p {
   font-family: inherit;
   font-size: inherit;
-  margin: 0 0 1em;
+  margin: var(--paragraph-spacing-before, 0) 0
+    var(--paragraph-spacing-after, 1em);
   line-height: inherit;
 }
 .sheet-document :is(.tiptap, .letter-content) :is(h1, h2, h3, h4) {
@@ -2440,6 +2443,22 @@ body:has(.notebook-reader[open]) {
 }
 .editor-appearance .paper-swatch {
   min-height: 44px;
+}
+.editor-spacing {
+  min-width: 0;
+  margin: 0 0 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.editor-spacing legend {
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.editor-spacing .muted {
+  margin: 0;
+  font-size: 12px;
 }
 @media (max-width: 700px), (hover: none) and (pointer: coarse) {
   .editor-panel-backdrop {

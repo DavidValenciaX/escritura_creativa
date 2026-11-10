@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import {
   family,
+  defaultAppearance,
   papers,
   contentWithLegacySignature,
   type Appearance,
@@ -156,6 +157,8 @@ export function paperStyle(
     "--title-font": `"${family(appearance.titleFont)}", Georgia, serif`,
     "--letter-size": `${appearance.fontSize}px`,
     "--letter-leading": appearance.lineHeight,
+    "--paragraph-spacing-before": `${appearance.paragraphSpacingBefore ?? defaultAppearance.paragraphSpacingBefore}em`,
+    "--paragraph-spacing-after": `${appearance.paragraphSpacingAfter ?? defaultAppearance.paragraphSpacingAfter}em`,
     ...(customPaper
       ? {
           backgroundImage: `url("${resourceUrl(appearance.paper, token)}")`,

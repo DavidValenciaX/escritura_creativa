@@ -14,6 +14,8 @@ export const compositionDocument: Document = {
     bodyFont: "courier",
     titleFont: "dancing",
     fontSize: 22,
+    paragraphSpacingBefore: 0.25,
+    paragraphSpacingAfter: 0.75,
   },
   notebook_id: null,
   position: 0,

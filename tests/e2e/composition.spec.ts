@@ -25,6 +25,8 @@ async function composition(sheet: Locator) {
             width: bounds.width / scale,
             height: bounds.height / scale,
             fontSize: parseFloat(getComputedStyle(node).fontSize),
+            marginTop: parseFloat(getComputedStyle(node).marginTop),
+            marginBottom: parseFloat(getComputedStyle(node).marginBottom),
           },
         ];
       }),
@@ -59,6 +61,8 @@ test("all presentations preserve the complete sheet composition", async ({
     /Courier Prime/,
   );
   expect(reference.closing.fontSize).toBe(22);
+  expect(reference.body.marginTop).toBe(5.5);
+  expect(reference.body.marginBottom).toBe(16.5);
   await expect(page.locator(".letter-signature")).toHaveCount(0);
   for (const width of [318, 240, 180, 96]) {
     await page.locator("#composition-thumbnail").evaluate((element, value) => {

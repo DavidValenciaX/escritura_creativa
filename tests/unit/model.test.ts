@@ -14,6 +14,26 @@ import {
 } from "../../src/lib/model";
 const id = "a72b0f89-aedd-4ad2-a5ac-92e6d6137b07";
 describe("untrusted editor content", () => {
+  it("supplies the original paragraph spacing for legacy appearances", () => {
+    const { paragraphSpacingBefore, paragraphSpacingAfter, ...legacy } =
+      defaultAppearance;
+    expect(appearanceSchema.parse(legacy)).toEqual(defaultAppearance);
+  });
+  it("accepts paragraph spacing limits and rejects invalid values", () => {
+    for (const key of ["paragraphSpacingBefore", "paragraphSpacingAfter"]) {
+      for (const value of [0, 0.25, 0.5, 0.75, 1, 1.5, 2])
+        expect(
+          appearanceSchema.parse({ ...defaultAppearance, [key]: value })[
+            key as keyof typeof defaultAppearance
+          ],
+        ).toBe(value);
+      for (const value of [-0.25, 2.25, NaN, Infinity, "1", null])
+        expect(
+          appearanceSchema.safeParse({ ...defaultAppearance, [key]: value })
+            .success,
+        ).toBe(false);
+    }
+  });
   it.each(["caveat", "kalam", "patrick"])(
     "recovers saved texts using retired font %s without losing their content",
     (font) => {

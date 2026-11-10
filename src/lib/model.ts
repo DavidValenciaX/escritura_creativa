@@ -51,6 +51,8 @@ export const defaultAppearance = {
   bodyFont: "lora",
   fontSize: 18,
   lineHeight: 1.8,
+  paragraphSpacingBefore: 0,
+  paragraphSpacingAfter: 1,
   ink: "#34312d",
 };
 export const emptyContent: ContentNode = {
@@ -88,6 +90,8 @@ export const appearanceSchema = z.object({
   bodyFont: fontKey,
   fontSize: z.number().min(12).max(32),
   lineHeight: z.number().min(1.2).max(2.5),
+  paragraphSpacingBefore: z.number().min(0).max(2).default(0),
+  paragraphSpacingAfter: z.number().min(0).max(2).default(1),
   ink: z.string().regex(/^#[0-9a-fA-F]{6}$/),
 });
 const allowedTypes = new Set([
