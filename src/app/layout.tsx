@@ -4,6 +4,13 @@ import "@fontsource/courier-prime/latin-400.css";
 import "@fontsource/special-elite/latin-400.css";
 import "@fontsource/lora/latin-400.css";
 import "@fontsource/eb-garamond/latin-400.css";
+import "@fontsource/great-vibes/latin-400.css";
+import "@fontsource/parisienne/latin-400.css";
+import "@fontsource/homemade-apple/latin-400.css";
+import "@fontsource/cormorant-garamond/latin-400.css";
+import "@fontsource/libre-baskerville/latin-400.css";
+import "@fontsource/playfair-display/latin-400.css";
+import "@fontsource/im-fell-english/latin-400.css";
 import "./globals.css";
 export const viewport: Viewport = {
   colorScheme: "only light",

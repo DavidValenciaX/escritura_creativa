@@ -88,7 +88,7 @@ describe("migrations and PostgreSQL RLS", () => {
           "select count(*)::int as count from resources",
         )
       ).rows[0].count,
-    ).toBe(13);
+    ).toBe(27);
     expect(
       (
         await pg.query<{ count: number }>(

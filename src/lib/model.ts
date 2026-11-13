@@ -17,6 +17,29 @@ export const papers = [
   },
   { key: "grid", name: "Cuadrícula", note: "Papel con cuadrícula" },
   { key: "white", name: "Editorial", note: "Fondo blanco liso" },
+  {
+    key: "parchment",
+    name: "Pergamino",
+    note: "Pergamino cálido con bordes tostados",
+  },
+  { key: "kraft", name: "Kraft", note: "Papel kraft con fibras visibles" },
+  {
+    key: "laid",
+    name: "Verjurado",
+    note: "Papel de carta con líneas de verjura",
+  },
+  {
+    key: "airmail",
+    name: "Correo aéreo",
+    note: "Papel fino azulado de correo aéreo",
+  },
+  {
+    key: "watercolor",
+    name: "Acuarela",
+    note: "Papel de acuarela con manchas suaves",
+  },
+  { key: "lavender", name: "Lavanda", note: "Fondo lavanda con grano fino" },
+  { key: "dotted", name: "Punteado", note: "Papel con retícula de puntos" },
 ];
 export const fonts = [
   {
@@ -24,6 +47,25 @@ export const fonts = [
     name: "Dancing Script",
     family: "Dancing Script",
     kind: "Manuscrita",
+  },
+  {
+    key: "greatvibes",
+    name: "Great Vibes",
+    family: "Great Vibes",
+    kind: "Manuscrita",
+  },
+  {
+    key: "parisienne",
+    name: "Parisienne",
+    family: "Parisienne",
+    kind: "Manuscrita",
+  },
+  {
+    key: "homemade",
+    name: "Homemade Apple",
+    family: "Homemade Apple",
+    kind: "Manuscrita",
+    license: "Apache-2.0",
   },
   {
     key: "courier",
@@ -36,6 +78,7 @@ export const fonts = [
     name: "Special Elite",
     family: "Special Elite",
     kind: "Máquina",
+    license: "Apache-2.0",
   },
   { key: "lora", name: "Lora", family: "Lora", kind: "Lectura" },
   {
@@ -44,7 +87,37 @@ export const fonts = [
     family: "EB Garamond",
     kind: "Lectura",
   },
-];
+  {
+    key: "cormorant",
+    name: "Cormorant Garamond",
+    family: "Cormorant Garamond",
+    kind: "Lectura",
+  },
+  {
+    key: "baskerville",
+    name: "Libre Baskerville",
+    family: "Libre Baskerville",
+    kind: "Lectura",
+  },
+  {
+    key: "playfair",
+    name: "Playfair Display",
+    family: "Playfair Display",
+    kind: "Clásica",
+  },
+  {
+    key: "fell",
+    name: "IM Fell English",
+    family: "IM Fell English",
+    kind: "Antigua",
+  },
+] as {
+  key: string;
+  name: string;
+  family: string;
+  kind: string;
+  license?: string;
+}[];
 export const defaultAppearance = {
   paper: "cream",
   titleFont: "lora",

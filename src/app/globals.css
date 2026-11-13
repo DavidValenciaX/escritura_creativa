@@ -1105,6 +1105,68 @@ input[type="range"] {
 .paper-white {
   background: #fffefa;
 }
+.paper-parchment {
+  background-color: #f1e2bf;
+  background-image:
+    radial-gradient(ellipse at center, transparent 55%, #9c6b2a2e 100%),
+    radial-gradient(ellipse at 20% 30%, #c9a46a1c, transparent 40%),
+    radial-gradient(ellipse at 80% 75%, #b8894a1a, transparent 45%),
+    radial-gradient(#8a64300f 0.8px, transparent 0.8px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    5px 5px;
+}
+.paper-kraft {
+  background-color: #dcc39a;
+  background-image:
+    repeating-linear-gradient(17deg, transparent 0 9px, #8f6a3a12 9px 10px),
+    repeating-linear-gradient(-23deg, transparent 0 13px, #fff4dc14 13px 14px),
+    radial-gradient(#6f4f2618 0.9px, transparent 0.9px);
+  background-size:
+    auto,
+    auto,
+    6px 6px;
+}
+.paper-laid {
+  background-color: #f8f3e3;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 34px, #b3a37c1c 34px 35px),
+    repeating-linear-gradient(0deg, transparent 0 2px, #b3a37c0c 2px 3px);
+}
+.paper-airmail {
+  background-color: #eef3f8;
+  background-image:
+    radial-gradient(ellipse at 50% 0, #ffffff80, transparent 60%),
+    repeating-linear-gradient(0deg, transparent 0 3px, #8ea4bd0a 3px 4px);
+}
+.paper-watercolor {
+  background-color: #fbf8f1;
+  background-image:
+    radial-gradient(ellipse at 8% 6%, #e9b8a838, transparent 32%),
+    radial-gradient(ellipse at 95% 12%, #a9c4d63a, transparent 30%),
+    radial-gradient(ellipse at 90% 96%, #c6d6ae38, transparent 34%),
+    radial-gradient(ellipse at 4% 92%, #e2cfa036, transparent 30%),
+    radial-gradient(#b9a98a10 0.7px, transparent 0.7px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    4px 4px;
+}
+.paper-lavender {
+  background-color: #efeaf4;
+  background-image: radial-gradient(#8a76a014 0.7px, transparent 0.7px);
+  background-size: 4px 4px;
+}
+.paper-dotted {
+  background-color: #fbfaf4;
+  background-image: radial-gradient(#9aa6ae66 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  background-position: 11px 11px;
+}
 .resource-card {
   background: #fcfbf7;
   border: 1px solid var(--line);

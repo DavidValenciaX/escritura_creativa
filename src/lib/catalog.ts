@@ -18,7 +18,7 @@ export const builtins: Resource[] = [
     name: f.name,
     author: "Catálogo de Google Fonts",
     source: `https://fonts.google.com/specimen/${f.name.replaceAll(" ", "+")}`,
-    license: f.key === "elite" ? "Apache-2.0" : "OFL-1.1",
+    license: f.license ?? "OFL-1.1",
     description: f.kind,
     tags: [f.kind],
     builtin_key: f.key,
